@@ -177,8 +177,14 @@ public class ClaudeSDKToolWindow implements ToolWindowFactory, DumbAware {
                             }
                             // Defer chat window creation to next EDT cycle so the status text renders first
                             ApplicationManager.getApplication().invokeLater(() -> {
-                                if (!project.isDisposed()) {
+                                if (project.isDisposed()) {
+                                    return;
+                                }
+                                try {
                                     replaceLoadingPanelWithChatWindow(project, toolWindow, contentFactory, contentManager, loadingContent);
+                                } catch (Throwable t) {
+                                    LOG.error("[ToolWindow] Failed to create chat window", t);
+                                    updateLoadingPanelWithError(loadingPanel, "Failed to initialize UI: " + t.getClass().getSimpleName() + ": " + t.getMessage());
                                 }
                             });
                         } else {

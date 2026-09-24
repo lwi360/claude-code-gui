@@ -308,8 +308,10 @@ public class DependencyManager {
                 }
             }
 
-            // 5. Run npm install (with retry mechanism)
-            List<String> packages = sdk.getAllPackages();
+            // 5. Run npm install (with retry mechanism).
+            // Install the registry latest, not a pinned range. A caret range such as
+            // ^0.2.58 cannot reach 0.3.x even when the update badge shows that version.
+            List<String> packages = resolveInstallPackages(sdk, log);
             int maxRetries = 2;
             InstallResult lastResult = null;
 
@@ -568,6 +570,25 @@ public class DependencyManager {
     private void configureProcessEnvironment(ProcessBuilder pb) {
         String nodePath = nodeDetector.findNodeExecutable();
         envConfigurator.updateProcessEnvironment(pb, nodePath);
+    }
+
+    /**
+     * Packages passed to npm install. The main SDK is pinned to the current
+     * registry latest so an update installs the version shown in the UI.
+     */
+    private List<String> resolveInstallPackages(SdkDefinition sdk, Consumer<String> log) {
+        String version = getLatestVersion(sdk.getId());
+        if (version == null || version.isEmpty()) {
+            version = "latest";
+            log.accept("Could not resolve the registry version, installing @latest");
+        } else {
+            log.accept("Target version: " + version);
+        }
+
+        List<String> packages = new ArrayList<>();
+        packages.add(sdk.getNpmPackage() + "@" + version);
+        packages.addAll(sdk.getDependencies());
+        return packages;
     }
 
     /**

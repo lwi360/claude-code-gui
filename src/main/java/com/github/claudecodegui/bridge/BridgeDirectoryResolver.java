@@ -1022,8 +1022,15 @@ public class BridgeDirectoryResolver {
         this.cachedSdkDir = null;
         this.manuallySdkDir = null;
         this.extractionState.set(ExtractionState.NOT_STARTED);
-        this.extractionFutureRef.set(null);
+        CompletableFuture<File> previousExtraction = this.extractionFutureRef.getAndSet(null);
+        if (previousExtraction != null && !previousExtraction.isDone()) {
+            previousExtraction.cancel(false);
+        }
+        CompletableFuture<Boolean> previousReady = this.extractionReadyFuture;
         this.extractionReadyFuture = new CompletableFuture<>();
+        if (!previousReady.isDone()) {
+            previousReady.complete(false);
+        }
     }
 
     /**
@@ -1054,10 +1061,19 @@ public class BridgeDirectoryResolver {
             return CompletableFuture.completedFuture(true);
         }
 
-        // If extraction hasn't started yet, trigger it on a background thread
-        if (extractionState.get() == ExtractionState.NOT_STARTED) {
-            // The next call to findSdkDir will trigger extraction
-            // For now, return the ready future which will be completed when extraction finishes
+        ExtractionState state = extractionState.get();
+        if (state == ExtractionState.NOT_STARTED || state == ExtractionState.FAILED) {
+            CompletableFuture<Boolean> future = extractionReadyFuture;
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                try {
+                    findSdkDir();
+                } catch (Exception e) {
+                    LOG.warn("[BridgeResolver] Background extraction failed: " + e.getMessage(), e);
+                    if (!future.isDone()) {
+                        future.complete(false);
+                    }
+                }
+            });
         }
 
         return extractionReadyFuture;

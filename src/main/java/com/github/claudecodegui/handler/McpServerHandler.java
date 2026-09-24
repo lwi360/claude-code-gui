@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * MCP server management message handler.
@@ -127,12 +128,16 @@ public class McpServerHandler extends BaseMessageHandler {
                 // If bridge not ready, wait up to 10 seconds
                 if (!BridgePreloader.isBridgeReady()) {
                     LOG.info("[McpServerHandler] Bridge not ready yet, waiting...");
-                    boolean ready = BridgePreloader.waitForBridgeAsync()
-                        .get(10, TimeUnit.SECONDS);
-                    if (ready) {
-                        LOG.info("[McpServerHandler] Bridge is now ready, fetching status");
-                    } else {
-                        LOG.warn("[McpServerHandler] Bridge still not ready after timeout, proceeding anyway");
+                    try {
+                        boolean ready = BridgePreloader.waitForBridgeAsync()
+                            .get(10, TimeUnit.SECONDS);
+                        if (ready) {
+                            LOG.info("[McpServerHandler] Bridge is now ready, fetching status");
+                        } else {
+                            LOG.warn("[McpServerHandler] Bridge preparation failed, fetching status anyway");
+                        }
+                    } catch (TimeoutException e) {
+                        LOG.warn("[McpServerHandler] Bridge still not ready after timeout, fetching status anyway");
                     }
                 }
 

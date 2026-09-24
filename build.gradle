@@ -55,7 +55,7 @@ checkstyle {
 }
 
 group = 'com.github.idea-claude-code-gui'
-version = '1.1.0-fix'
+version = '1.1.2'
 def minimumJavaVersion = 17
 def currentJvmFeatureVersion = JavaVersion.current().majorVersion.toInteger()
 def buildToolchainVersion = Math.max(minimumJavaVersion, currentJvmFeatureVersion)
@@ -199,8 +199,8 @@ patchPluginXml {
         vendorUrl = releaseVendorUrl
     }
 
-    // plugin compatibility range
-    sinceBuild = '233'
+    // 2025.3+ : com.intellij.modules.jcef exists from 2025.3.1 and is required on 2026.2.
+    sinceBuild = '253'
     // Keep the upper bound open unless a release explicitly needs a cap.
     untilBuild = providers.provider { null }
 

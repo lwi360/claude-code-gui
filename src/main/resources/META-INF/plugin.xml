@@ -57,6 +57,8 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <!-- JCEF is a separate bundled plugin on 2026.2+. Without this, JBCefBrowser is invisible and the tool window stays on the loading screen. -->
+    <depends>com.intellij.modules.jcef</depends>
     <!-- Optional: Terminal support for terminal output monitoring -->
     <depends optional="true" config-file="terminal-features.xml">org.jetbrains.plugins.terminal</depends>
     <!-- Optional: Java support for enhanced context collection in Java/Kotlin IDEs -->
