@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { TFunction } from 'i18next';
 import type { ClaudeMessage, HistoryData } from '../types';
 import { sendBridgeEvent } from '../utils/bridge';
+import { isNewSessionConfirmEnabled } from '../utils/skipNewSessionConfirm';
 
 type ViewMode = 'chat' | 'history' | 'settings';
 
@@ -111,7 +112,7 @@ export function useSessionManagement({
       // If loading (AI is responding), show interrupt confirmation
       pendingActionRef.current = 'newSession';
       setShowInterruptConfirm(true);
-    } else if (messages.length > 0) {
+    } else if (messages.length > 0 && isNewSessionConfirmEnabled()) {
       // If there are messages but not loading, show new session confirmation
       pendingActionRef.current = 'newSession';
       setShowNewSessionConfirm(true);

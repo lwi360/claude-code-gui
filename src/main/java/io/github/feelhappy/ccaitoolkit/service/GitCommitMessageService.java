@@ -33,10 +33,10 @@ public class GitCommitMessageService {
     private static final int MAX_LINE_LENGTH = 240;
 
     /**
-     * Default model used for commit message generation.
-     * Uses the Sonnet model for a balance between cost and quality.
+     * Fallback model when the direct messages API cannot be used.
+     * Haiku is enough for a one-line commit message.
      */
-    private static final String COMMIT_MESSAGE_MODEL = "claude-sonnet-4-20250514";
+    private static final String COMMIT_MESSAGE_MODEL = "claude-haiku-4-5-20251001";
 
     /**
      * Default AI provider.
@@ -44,97 +44,6 @@ public class GitCommitMessageService {
      */
     private static final String DEFAULT_PROVIDER = "claude";
 
-    /**
-     * Built-in commit prompt (based on CCG Commits specification).
-     * Users can append additional prompts via the settings page, which take priority.
-     */
-    private static final String BUILTIN_COMMIT_PROMPT = """
-你是一个专门负责 GitHub commit 的高级程序员，请你遵循下面内容，生成高质量 commit
-
-## 核心规则
-
-### 基本格式
-```
-<type>[scope]: <description>
-
-[body]
-
-[footer]
-```
-
-### 输出要求
-- 只输出提交消息，不添加签名、标记或元信息
-- 不要包含 "Generated with Claude Code"、"Co-Authored-By" 等内容
-- 不使用 emoji（除非项目规范明确要求）
-- 使用祈使语气、现在时（"add" 而非 "added"）
-- 主题行不超过 72 字符
-- 保持简洁专业
-- **必须用 `<commit></commit>` 标签包裹，标签外不要有任何内容**
-- 语言默认使用中文
-- 只基于下方“已选择的变更”生成，不要推断未展示的文件或行为
-- 小变更优先生成单行提交；只有多项相关变更时才添加正文
-- 根据主要变更路径选择 scope，避免使用过宽泛的 scope
-
-## 提交类型映射
-
-| Type | 描述 | 使用场景 |
-|------|------|---------|
-| `feat` | 新功能 | 添加新功能 |
-| `fix` | Bug修复 | 修复问题 |
-| `docs` | 文档 | 仅文档变更 |
-| `style` | 代码风格 | 格式化、缺少分号等 |
-| `refactor` | 重构 | 既不修复bug也不添加功能 |
-| `perf` | 性能优化 | 性能改进 |
-| `test` | 测试 | 添加或修改测试 |
-| `chore` | 构建/工具 | 构建过程或工具变更 |
-| `ci` | CI/CD | CI配置变更 |
-| `build` | 构建系统 | 影响构建系统的变更 |
-| `revert` | 回滚 | 回滚之前的提交 |
-
-## Scope（范围）指南
-
-Scope 应该是一个描述代码库部分的名词，在整个项目中保持一致，简短且有意义。
-
-常见 Scope 示例：
-- 模块级别：api, auth, ui, db, config, deps
-- 组件级别：button, modal, header, footer
-- 功能级别：parser, compiler, validator, router
-
-## Body（正文）编写指南
-
-Body 应该：
-- 解释**是什么**变更和**为什么**变更（而不是如何变更）
-- 使用项目符号列出多个变更
-- 包含变更的动机
-- 对比新旧行为
-- 引用相关问题或决策
-- 每行不超过 72 个字符
-
-## Footer（页脚）编写指南
-
-Footer 包含：
-- Breaking Changes：BREAKING CHANGE: rename config.auth to config.authentication
-- Issue 引用：Closes: #123, #124 / Fixes: #125 / Refs: #126
-
-## 最佳实践
-
-### 应该做的
-- 使用现在时、祈使语气（"add" 而不是 "added"）
-- 第一行保持在 50 个字符以内（最多 72）
-- 描述的首字母大写
-- 主题行末尾不加句号
-- 主题和正文之间用空行分隔
-- 使用正文解释是什么和为什么（而不是如何）
-- 引用相关 issue 和破坏性变更
-
-### 不应该做的
-- 在一个提交中混合多个逻辑变更
-- 在主题中包含实现细节
-- 使用过去时（"added" 而不是 "add"）
-- 创建过大的提交（难以审查）
-- 提交损坏的代码（除非是 WIP）
-- 包含敏感信息
-""";
 
     // XML tags used to extract the commit message
     private static final String COMMIT_TAG_START = "<commit>";
@@ -419,43 +328,21 @@ Footer 包含：
     }
 
     /**
-     * Build the full prompt.
-     * Logic: built-in prompt + user's additional prompt (takes priority) + git diff.
+     * User message for the one-shot request. Formatting rules live in the
+     * commit-message service system prompt, so this stays limited to the diff.
      */
     private String buildFullPrompt(String diff) {
         StringBuilder prompt = new StringBuilder();
-
-        // 1. Built-in commit prompt
-        prompt.append(BUILTIN_COMMIT_PROMPT);
-
-        // 2. User's additional prompt (if any, takes priority)
+        prompt.append("请只根据下面的变更写一条提交说明，并用 <commit></commit> 包裹。\n\n");
         String userAdditionalPrompt = getUserAdditionalPrompt();
         if (!userAdditionalPrompt.isEmpty()) {
-            prompt.append("\n\n## 用户附加要求（优先遵循）\n\n");
-            prompt.append("以下是用户的额外要求，请在生成 commit message 时优先考虑这些要求：\n\n");
+            prompt.append("额外要求：\n");
             prompt.append(userAdditionalPrompt);
+            prompt.append("\n\n");
         }
-
-        // 3. Git diff content
-        prompt.append("\n\n---\n\n");
-        prompt.append("以下是 git diff 信息，请根据以上规则生成 commit message：\n\n");
-        prompt.append("```diff\n");
+        prompt.append("已选择的变更：\n```diff\n");
         prompt.append(diff);
         prompt.append("\n```");
-
-        // 4. Output format requirements (enforce XML tag wrapping for easy parsing)
-        prompt.append("\n\n【输出格式要求 - 必须严格遵守】\n");
-        prompt.append("请将 commit message 用 XML 标签包裹输出，格式如下：\n");
-        prompt.append("<commit>\n");
-        prompt.append("type(scope): description\n");
-        prompt.append("\n");
-        prompt.append("optional body\n");
-        prompt.append("</commit>\n\n");
-        prompt.append("重要规则：\n");
-        prompt.append("1. 必须使用 <commit> 和 </commit> 标签包裹\n");
-        prompt.append("2. 标签外不要有任何其他内容（不要分析、不要解释、不要说明）\n");
-        prompt.append("3. 不要把 diff 截断提示、文件状态说明当成提交内容本身\n");
-
         return prompt.toString();
     }
 
@@ -486,30 +373,151 @@ Footer 包含：
     }
 
     /**
-     * Call the Claude API.
+     * Call the Claude API with a single messages request. CLI login cannot use
+     * that path, so it falls back to a one-turn agent call without tools.
      */
     private void callClaudeAPI(String prompt, CommitMessageCallback callback) {
+        try {
+            FastCommitResult fast = runFastCommitQuery(prompt);
+            if (fast.cliLogin) {
+                callClaudeAgentFallback(prompt, callback);
+                return;
+            }
+            if (!fast.ok) {
+                callback.onError(fast.error == null || fast.error.isEmpty()
+                        ? ClaudeCodeGuiBundle.message("commit.callApiFailed")
+                        : fast.error);
+                return;
+            }
+            String commitMessage = cleanupCommitMessage(fast.message);
+            if (commitMessage.isEmpty()) {
+                callback.onError(ClaudeCodeGuiBundle.message("commit.emptyMessage"));
+            } else {
+                callback.onSuccess(commitMessage);
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to generate commit message via direct API", e);
+            callback.onError(ClaudeCodeGuiBundle.message("commit.callApiFailed") + ": " + e.getMessage());
+        }
+    }
+
+    private FastCommitResult runFastCommitQuery(String prompt) throws Exception {
+        io.github.feelhappy.ccaitoolkit.bridge.NodeDetector nodeDetector =
+                io.github.feelhappy.ccaitoolkit.bridge.NodeDetector.getInstance();
+        io.github.feelhappy.ccaitoolkit.bridge.BridgeDirectoryResolver resolver =
+                io.github.feelhappy.ccaitoolkit.startup.BridgePreloader.getSharedResolver();
+        java.io.File sdkDir = resolver.findSdkDir();
+        if (sdkDir == null || !sdkDir.isDirectory()) {
+            throw new IllegalStateException("ai-bridge directory is not ready");
+        }
+        java.io.File script = new java.io.File(sdkDir, "commit-message-cli.js");
+        if (!script.isFile()) {
+            throw new IllegalStateException("commit-message-cli.js is missing from ai-bridge");
+        }
+
+        String node = nodeDetector.findNodeExecutable();
+        ProcessBuilder pb = new ProcessBuilder(node, script.getAbsolutePath());
+        pb.directory(sdkDir);
+        new io.github.feelhappy.ccaitoolkit.bridge.EnvironmentConfigurator().updateProcessEnvironment(pb, node);
+
+        Process process = pb.start();
+        StringBuilder stdout = new StringBuilder();
+        StringBuilder stderr = new StringBuilder();
+        Thread outThread = new Thread(() -> drain(process.getInputStream(), stdout), "commit-message-stdout");
+        Thread errThread = new Thread(() -> drain(process.getErrorStream(), stderr), "commit-message-stderr");
+        outThread.start();
+        errThread.start();
+
+        com.google.gson.JsonObject input = new com.google.gson.JsonObject();
+        input.addProperty("prompt", prompt);
+        try (java.io.OutputStreamWriter writer = new java.io.OutputStreamWriter(
+                process.getOutputStream(), java.nio.charset.StandardCharsets.UTF_8)) {
+            writer.write(new com.google.gson.Gson().toJson(input));
+        }
+
+        boolean finished = process.waitFor(25, java.util.concurrent.TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            throw new IllegalStateException("commit message request timed out");
+        }
+        outThread.join(2000);
+        errThread.join(2000);
+        if (stderr.length() > 0) {
+            LOG.info("[GitCommit] " + stderr.toString().trim());
+        }
+
+        String jsonLine = lastJsonLine(stdout.toString());
+        if (jsonLine == null) {
+            throw new IllegalStateException("commit message process returned no result");
+        }
+        com.google.gson.JsonObject result = com.google.gson.JsonParser.parseString(jsonLine).getAsJsonObject();
+        FastCommitResult parsed = new FastCommitResult();
+        String code = result.has("code") && !result.get("code").isJsonNull()
+                ? result.get("code").getAsString() : "";
+        parsed.cliLogin = "cli_login".equals(code);
+        parsed.ok = result.has("ok") && result.get("ok").getAsBoolean();
+        parsed.message = result.has("message") && !result.get("message").isJsonNull()
+                ? result.get("message").getAsString() : "";
+        parsed.error = result.has("error") && !result.get("error").isJsonNull()
+                ? result.get("error").getAsString() : "";
+        return parsed;
+    }
+
+    private static void drain(java.io.InputStream stream, StringBuilder target) {
+        try (java.io.BufferedReader reader = new java.io.BufferedReader(
+                new java.io.InputStreamReader(stream, java.nio.charset.StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                target.append(line).append('\n');
+            }
+        } catch (java.io.IOException ignored) {
+            // The process ending closes the stream.
+        }
+    }
+
+    private static String lastJsonLine(String output) {
+        String found = null;
+        for (String line : output.split("\n")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                found = trimmed;
+            }
+        }
+        return found;
+    }
+
+    private static final class FastCommitResult {
+        private boolean ok;
+        private boolean cliLogin;
+        private String message = "";
+        private String error = "";
+    }
+
+    /**
+     * One-turn agent fallback for Claude CLI login, which the direct SDK cannot use.
+     */
+    private void callClaudeAgentFallback(String prompt, CommitMessageCallback callback) {
         ClaudeSDKBridge bridge = new ClaudeSDKBridge();
         try {
             // Simple callback handler
             StringBuilder result = new StringBuilder();
 
-            // Use the 12-parameter sendMessage overload:
-            // - model: COMMIT_MESSAGE_MODEL (Sonnet model)
-            // - streaming: false (non-streaming, returns complete result at once)
-            // - disableThinking: true (disable thinking mode to avoid verbose reasoning output)
             bridge.sendMessage(
-                "git-commit-message",      // channelId
-                prompt,                     // message
-                null,                       // sessionId (null = new session)
-                project.getBasePath(),      // cwd
-                null,                       // attachments (not needed)
-                null,                       // permissionMode (use default)
-                COMMIT_MESSAGE_MODEL,       // model (Sonnet)
-                null,                       // openedFiles
-                null,                       // agentPrompt
-                false,                      // streaming (non-streaming mode)
-                true,                       // disableThinking (disable thinking mode)
+                "git-commit-message",
+                prompt,
+                null,
+                null,
+                project.getBasePath(),
+                null,
+                null,
+                COMMIT_MESSAGE_MODEL,
+                null,
+                null,
+                false,
+                true,
+                null,
+                1,
+                true,
                 new MessageCallback() {
                     @Override
                     public void onMessage(String type, String content) {

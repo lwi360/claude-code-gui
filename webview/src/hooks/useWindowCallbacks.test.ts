@@ -86,6 +86,7 @@ describe('useWindowCallbacks integration', () => {
     // B-011
     customSessionTitleRef: { current: null },
     currentSessionIdRef: { current: null },
+    setCustomSessionTitle: vi.fn(),
     updateHistoryTitle: vi.fn(),
 
     ...overrides,

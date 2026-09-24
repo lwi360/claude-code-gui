@@ -90,6 +90,23 @@ public class SoundNotificationService {
         });
     }
 
+    public void playAskUserQuestionSound() {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                CodemossSettingsService settings = new CodemossSettingsService();
+                if (!settings.getAskUserQuestionSoundNotificationEnabled()) {
+                    return;
+                }
+                if (settings.getSoundOnlyWhenUnfocused() && ApplicationManager.getApplication().isActive()) {
+                    return;
+                }
+                playBySelection(settings.getSelectedSound(), settings.getCustomSoundPath());
+            } catch (Exception e) {
+                LOG.warn("[SoundNotification] Failed to play ask-user sound: " + e.getMessage(), e);
+            }
+        });
+    }
+
     /**
      * Play sound by selection: built-in soundId or custom file path.
      */

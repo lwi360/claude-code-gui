@@ -130,6 +130,24 @@ public class ProjectConfigHandler {
         }
     }
 
+    public void handleTestProjectDatabaseConnection(String content) {
+        CompletableFuture.runAsync(() -> {
+            JsonObject result;
+            try {
+                JsonObject payload = gson.fromJson(content, JsonObject.class);
+                result = settingsService.testProjectDatabaseConnection(payload);
+            } catch (Exception e) {
+                LOG.warn("[ProjectConfigHandler] Failed to test database connection: " + e.getMessage(), e);
+                result = new JsonObject();
+                result.addProperty("success", false);
+                result.addProperty("message", e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+            }
+            String json = gson.toJson(result);
+            ApplicationManager.getApplication().invokeLater(() ->
+                    context.callJavaScript("window.databaseConnectionTestResult", context.escapeJs(json)));
+        });
+    }
+
     public void handleGetStreamingEnabled() {
         try {
             String projectPath = context.getProject().getBasePath();
@@ -431,5 +449,165 @@ public class ProjectConfigHandler {
                     context.callJavaScript("window.showError", context.escapeJs("获取统计数据失败: " + e.getMessage())));
             }
         });
+    }
+
+    public void handleGetPermissionDialogTimeout() {
+        try {
+            pushJson("window.updatePermissionDialogTimeout", "permissionDialogTimeoutSeconds",
+                    settingsService.getPermissionDialogTimeoutSeconds());
+        } catch (Exception e) {
+            LOG.error("[ProjectConfigHandler] Failed to get permission dialog timeout: " + e.getMessage(), e);
+            pushJson("window.updatePermissionDialogTimeout", "permissionDialogTimeoutSeconds",
+                    CodemossSettingsService.DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS);
+        }
+    }
+
+    public void handleSetPermissionDialogTimeout(String content) {
+        try {
+            JsonObject json = gson.fromJson(content, JsonObject.class);
+            int seconds = CodemossSettingsService.DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS;
+            if (json != null && json.has("permissionDialogTimeoutSeconds")
+                    && json.get("permissionDialogTimeoutSeconds").isJsonPrimitive()
+                    && json.get("permissionDialogTimeoutSeconds").getAsJsonPrimitive().isNumber()) {
+                seconds = json.get("permissionDialogTimeoutSeconds").getAsInt();
+            }
+            settingsService.setPermissionDialogTimeoutSeconds(seconds);
+            pushJson("window.updatePermissionDialogTimeout", "permissionDialogTimeoutSeconds",
+                    settingsService.getPermissionDialogTimeoutSeconds());
+        } catch (Exception e) {
+            LOG.error("[ProjectConfigHandler] Failed to set permission dialog timeout: " + e.getMessage(), e);
+            ApplicationManager.getApplication().invokeLater(() ->
+                    context.callJavaScript("window.showError", context.escapeJs("保存权限对话框超时失败: " + e.getMessage())));
+        }
+    }
+
+    public void handleGetCommitGenerationEnabled() {
+        handleGetGlobalBoolean("window.updateCommitGenerationEnabled", "commitGenerationEnabled", true,
+                settingsService::getCommitGenerationEnabled);
+    }
+
+    public void handleSetCommitGenerationEnabled(String content) {
+        handleSetGlobalBoolean(content, "commitGenerationEnabled", true, settingsService::setCommitGenerationEnabled,
+                "window.updateCommitGenerationEnabled");
+    }
+
+    public void handleGetStatusBarWidgetEnabled() {
+        handleGetGlobalBoolean("window.updateStatusBarWidgetEnabled", "statusBarWidgetEnabled", true,
+                settingsService::getStatusBarWidgetEnabled);
+    }
+
+    public void handleSetStatusBarWidgetEnabled(String content) {
+        handleSetGlobalBoolean(content, "statusBarWidgetEnabled", true, enabled -> {
+            settingsService.setStatusBarWidgetEnabled(enabled);
+            if (context.getProject() != null) {
+                io.github.feelhappy.ccaitoolkit.notifications.ClaudeStatusBarWidget.Factory
+                        .applyAvailability(context.getProject(), enabled);
+            }
+        }, "window.updateStatusBarWidgetEnabled");
+    }
+
+    public void handleGetTaskCompletionNotificationEnabled() {
+        handleGetGlobalBoolean("window.updateTaskCompletionNotificationEnabled", "taskCompletionNotificationEnabled", false,
+                settingsService::getTaskCompletionNotificationEnabled);
+    }
+
+    public void handleSetTaskCompletionNotificationEnabled(String content) {
+        handleSetGlobalBoolean(content, "taskCompletionNotificationEnabled", false,
+                settingsService::setTaskCompletionNotificationEnabled, "window.updateTaskCompletionNotificationEnabled");
+    }
+
+    public void handleGetAskUserQuestionNotificationEnabled() {
+        handleGetGlobalBoolean("window.updateAskUserQuestionNotificationEnabled", "askUserQuestionNotificationEnabled", false,
+                settingsService::getAskUserQuestionNotificationEnabled);
+    }
+
+    public void handleSetAskUserQuestionNotificationEnabled(String content) {
+        handleSetGlobalBoolean(content, "askUserQuestionNotificationEnabled", false,
+                settingsService::setAskUserQuestionNotificationEnabled, "window.updateAskUserQuestionNotificationEnabled");
+    }
+
+    public void handleGetAskUserQuestionSoundNotificationEnabled() {
+        handleGetGlobalBoolean("window.updateAskUserQuestionSoundNotificationEnabled",
+                "askUserQuestionSoundNotificationEnabled", false,
+                settingsService::getAskUserQuestionSoundNotificationEnabled);
+    }
+
+    public void handleSetAskUserQuestionSoundNotificationEnabled(String content) {
+        handleSetGlobalBoolean(content, "askUserQuestionSoundNotificationEnabled", false,
+                settingsService::setAskUserQuestionSoundNotificationEnabled,
+                "window.updateAskUserQuestionSoundNotificationEnabled");
+    }
+
+    public void handleGetSystemNotificationOnlyWhenUnfocused() {
+        handleGetGlobalBoolean("window.updateSystemNotificationOnlyWhenUnfocused",
+                "systemNotificationOnlyWhenUnfocused", false,
+                settingsService::getSystemNotificationOnlyWhenUnfocused);
+    }
+
+    public void handleSetSystemNotificationOnlyWhenUnfocused(String content) {
+        handleSetGlobalBoolean(content, "systemNotificationOnlyWhenUnfocused", false,
+                settingsService::setSystemNotificationOnlyWhenUnfocused,
+                "window.updateSystemNotificationOnlyWhenUnfocused");
+    }
+
+    public void handleGetAiTitleGenerationEnabled() {
+        handleGetGlobalBoolean("window.updateAiTitleGenerationEnabled", "aiTitleGenerationEnabled", true,
+                settingsService::getAiTitleGenerationEnabled);
+    }
+
+    public void handleSetAiTitleGenerationEnabled(String content) {
+        handleSetGlobalBoolean(content, "aiTitleGenerationEnabled", true,
+                settingsService::setAiTitleGenerationEnabled, "window.updateAiTitleGenerationEnabled");
+    }
+
+    private void handleGetGlobalBoolean(String callback, String key, boolean fallback, BooleanReader reader) {
+        try {
+            pushJson(callback, key, reader.read());
+        } catch (Exception e) {
+            LOG.error("[ProjectConfigHandler] Failed to get " + key + ": " + e.getMessage(), e);
+            pushJson(callback, key, fallback);
+        }
+    }
+
+    private void handleSetGlobalBoolean(String content, String key, boolean fallback, BooleanWriter writer, String callback) {
+        try {
+            JsonObject json = gson.fromJson(content, JsonObject.class);
+            boolean enabled = fallback;
+            if (json != null && json.has(key) && !json.get(key).isJsonNull()) {
+                enabled = json.get(key).getAsBoolean();
+            }
+            writer.write(enabled);
+            pushJson(callback, key, enabled);
+        } catch (Exception e) {
+            LOG.error("[ProjectConfigHandler] Failed to set " + key + ": " + e.getMessage(), e);
+            ApplicationManager.getApplication().invokeLater(() ->
+                    context.callJavaScript("window.showError", context.escapeJs("保存设置失败: " + e.getMessage())));
+        }
+    }
+
+    private void pushJson(String callback, String key, int value) {
+        JsonObject response = new JsonObject();
+        response.addProperty(key, value);
+        String json = gson.toJson(response);
+        ApplicationManager.getApplication().invokeLater(() ->
+                context.callJavaScript(callback, context.escapeJs(json)));
+    }
+
+    private void pushJson(String callback, String key, boolean value) {
+        JsonObject response = new JsonObject();
+        response.addProperty(key, value);
+        String json = gson.toJson(response);
+        ApplicationManager.getApplication().invokeLater(() ->
+                context.callJavaScript(callback, context.escapeJs(json)));
+    }
+
+    @FunctionalInterface
+    private interface BooleanReader {
+        boolean read() throws Exception;
+    }
+
+    @FunctionalInterface
+    private interface BooleanWriter {
+        void write(boolean enabled) throws Exception;
     }
 }

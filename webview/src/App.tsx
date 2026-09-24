@@ -264,7 +264,7 @@ const App = () => {
     getOrCreateStreamingAssistantIndex, patchAssistantForStreaming,
     syncActiveProviderModelMapping,
     openPermissionDialog, openAskUserQuestionDialog, openPlanApprovalDialog,
-    customSessionTitleRef, currentSessionIdRef, updateHistoryTitle,
+    customSessionTitleRef, currentSessionIdRef, setCustomSessionTitle, updateHistoryTitle,
   });
 
   // ── Message processing ──

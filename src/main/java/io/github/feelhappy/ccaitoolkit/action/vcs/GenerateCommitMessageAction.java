@@ -256,7 +256,14 @@ public class GenerateCommitMessageAction extends AnAction implements DumbAware {
     @Override
     public void update(@NotNull AnActionEvent e) {
         Project project = e.getProject();
-        e.getPresentation().setEnabledAndVisible(project != null);
+        boolean commitGenerationEnabled = true;
+        try {
+            commitGenerationEnabled = new io.github.feelhappy.ccaitoolkit.settings.CodemossSettingsService()
+                    .getCommitGenerationEnabled();
+        } catch (Exception ignored) {
+            commitGenerationEnabled = true;
+        }
+        e.getPresentation().setEnabledAndVisible(project != null && commitGenerationEnabled);
 
         if (generating.get()) {
             e.getPresentation().setIcon(ICON_LOADING);

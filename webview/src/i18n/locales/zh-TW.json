@@ -412,6 +412,9 @@
         "generatedConfig": "產生的設定",
         "bundledServer": "使用外掛內建 db-mcp-server",
         "resolvedInstallDir": "實際服務目錄",
+        "testConnection": "測試連線",
+        "testSuccess": "連線成功（{{dialect}}，{{elapsed}} ms）",
+        "testFailed": "連線失敗：{{message}}",
         "fields": {
           "dbMcpServerPath": {
             "label": "db-mcp-server 路徑",
@@ -500,6 +503,65 @@
         "enabled": "已展開",
         "disabled": "已折疊",
         "hint": "開啟後，聊天中的程式碼差異將預設展開顯示。關閉後，差異預設摺疊，可點擊展開。"
+      },
+      "newSessionConfirm": {
+        "label": "新建會話確認",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "開啟後，目前會話已有訊息時新建會話會先確認。AI 正在回覆時仍會要求確認中斷。"
+      },
+      "aiTitleGeneration": {
+        "label": "AI 生成會話標題",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "首次對話結束後，使用目前供應商的快速模型生成一句會話標題，並顯示在聊天標題和歷史列表中。"
+      },
+      "detailedOutput": {
+        "label": "詳細輸出",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "開啟後，思考過程預設保持展開。"
+      },
+      "permissionDialogTimeout": {
+        "label": "權限對話框逾時",
+        "hint": "權限、計畫和提問對話框的等待時間，範圍 30–3600 秒，預設 300 秒。",
+        "unit": "秒"
+      },
+      "commitGeneration": {
+        "label": "AI 生成提交說明",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "關閉後，版本控制中的「用 AI 生成提交說明」入口會隱藏。"
+      },
+      "statusBarWidget": {
+        "label": "狀態列元件",
+        "enabled": "已顯示",
+        "disabled": "已隱藏",
+        "hint": "控制 IDE 狀態列上的 CC AI Toolkit 狀態顯示。"
+      },
+      "taskCompletionNotification": {
+        "label": "任務完成通知",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "任務完成時在 IDE 彈出通知。提示音仍由上方的任務完成提示音控制。"
+      },
+      "askUserQuestionNotification": {
+        "label": "提問通知",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "Claude 需要你回答問題時彈出 IDE 通知。"
+      },
+      "askUserQuestionSound": {
+        "label": "提問提示音",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "Claude 提問時播放目前選擇的提示音。"
+      },
+      "systemNotificationOnlyWhenUnfocused": {
+        "label": "僅在 IDE 未聚焦時通知",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "開啟後，任務完成和提問的系統通知只在 IDE 視窗未聚焦時出現。"
       },
       "sendShortcut": {
         "label": "發送快捷鍵",

@@ -5,6 +5,9 @@ import {
   type ProjectDatabaseBinding,
 } from '../projectDatabaseBinding';
 import type { NacosRegistryConfig } from '../../../types/registry';
+import { DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS, setCurrentPermissionDialogTimeoutSeconds } from '../../../utils/permissionDialogTimeout';
+import { isNewSessionConfirmEnabled, setNewSessionConfirmEnabled } from '../../../utils/skipNewSessionConfirm';
+import { isDetailedOutputEnabled, setDetailedOutputEnabled } from '../../../utils/detailedOutputPreference';
 
 const sendToJava = (message: string) => {
   if (window.sendToJava) {
@@ -52,12 +55,23 @@ export interface UseSettingsBasicActionsReturn {
   savingCommitPrompt: boolean;
   projectDatabaseBinding: ProjectDatabaseBinding;
   savingProjectDatabaseBinding: boolean;
+  testingProjectDatabaseConnection: boolean;
   soundNotificationEnabled: boolean;
   soundOnlyWhenUnfocused: boolean;
   selectedSound: string;
   customSoundPath: string;
   diffExpandedByDefault: boolean;
   historyCompletionEnabled: boolean;
+  newSessionConfirmEnabled: boolean;
+  detailedOutputEnabled: boolean;
+  permissionDialogTimeoutSeconds: number;
+  commitGenerationEnabled: boolean;
+  statusBarWidgetEnabled: boolean;
+  taskCompletionNotificationEnabled: boolean;
+  askUserQuestionNotificationEnabled: boolean;
+  askUserQuestionSoundNotificationEnabled: boolean;
+  systemNotificationOnlyWhenUnfocused: boolean;
+  aiTitleGenerationEnabled: boolean;
   // Nacos Registry
   nacosRegistryConfig: NacosRegistryConfig;
   savingNacosRegistryConfig: boolean;
@@ -79,12 +93,23 @@ export interface UseSettingsBasicActionsReturn {
   handleSaveCustomSoundPath: () => void;
   handleTestSound: () => void;
   handleBrowseSound: () => void;
+  handleNewSessionConfirmEnabledChange: (enabled: boolean) => void;
+  handleDetailedOutputEnabledChange: (enabled: boolean) => void;
+  handlePermissionDialogTimeoutChange: (seconds: number) => void;
+  handleCommitGenerationEnabledChange: (enabled: boolean) => void;
+  handleStatusBarWidgetEnabledChange: (enabled: boolean) => void;
+  handleTaskCompletionNotificationEnabledChange: (enabled: boolean) => void;
+  handleAskUserQuestionNotificationEnabledChange: (enabled: boolean) => void;
+  handleAskUserQuestionSoundNotificationEnabledChange: (enabled: boolean) => void;
+  handleSystemNotificationOnlyWhenUnfocusedChange: (enabled: boolean) => void;
+  handleAiTitleGenerationEnabledChange: (enabled: boolean) => void;
   handleSaveCommitPrompt: () => void;
   handleProjectDatabaseBindingChange: <K extends keyof ProjectDatabaseBinding>(
     key: K,
     value: ProjectDatabaseBinding[K]
   ) => void;
   handleSaveProjectDatabaseBinding: () => void;
+  handleTestProjectDatabaseConnection: () => void;
   handleNacosRegistryConfigChange: <K extends keyof NacosRegistryConfig>(
     key: K,
     value: NacosRegistryConfig[K]
@@ -125,9 +150,18 @@ export interface UseSettingsBasicActionsReturn {
   /** @internal */ setCustomSoundPath: (path: string) => void;
   /** @internal */ setDiffExpandedByDefault: (expanded: boolean) => void;
   /** @internal */ setHistoryCompletionEnabled: (enabled: boolean) => void;
+  /** @internal */ setPermissionDialogTimeoutSeconds: (seconds: number) => void;
+  /** @internal */ setCommitGenerationEnabled: (enabled: boolean) => void;
+  /** @internal */ setStatusBarWidgetEnabled: (enabled: boolean) => void;
+  /** @internal */ setTaskCompletionNotificationEnabled: (enabled: boolean) => void;
+  /** @internal */ setAskUserQuestionNotificationEnabled: (enabled: boolean) => void;
+  /** @internal */ setAskUserQuestionSoundNotificationEnabled: (enabled: boolean) => void;
+  /** @internal */ setSystemNotificationOnlyWhenUnfocused: (enabled: boolean) => void;
+  /** @internal */ setAiTitleGenerationEnabled: (enabled: boolean) => void;
   /** @internal */ setNacosRegistryConfig: (config: NacosRegistryConfig) => void;
   /** @internal */ setSavingNacosRegistryConfig: (saving: boolean) => void;
   /** @internal */ setTestingNacosConnection: (testing: boolean) => void;
+  /** @internal */ setTestingProjectDatabaseConnection: (testing: boolean) => void;
 }
 
 export function useSettingsBasicActions({
@@ -181,6 +215,7 @@ export function useSettingsBasicActions({
     createEmptyProjectDatabaseBinding()
   );
   const [savingProjectDatabaseBinding, setSavingProjectDatabaseBinding] = useState(false);
+  const [testingProjectDatabaseConnection, setTestingProjectDatabaseConnection] = useState(false);
 
   // Sound notification configuration
   const [soundNotificationEnabled, setSoundNotificationEnabled] = useState<boolean>(false);
@@ -196,6 +231,19 @@ export function useSettingsBasicActions({
       return false;
     }
   });
+
+  const [newSessionConfirmEnabled, setNewSessionConfirmEnabledState] = useState<boolean>(isNewSessionConfirmEnabled);
+  const [detailedOutputEnabled, setDetailedOutputEnabledState] = useState<boolean>(isDetailedOutputEnabled);
+  const [permissionDialogTimeoutSeconds, setPermissionDialogTimeoutSeconds] = useState(
+    DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS,
+  );
+  const [commitGenerationEnabled, setCommitGenerationEnabled] = useState(true);
+  const [statusBarWidgetEnabled, setStatusBarWidgetEnabled] = useState(true);
+  const [taskCompletionNotificationEnabled, setTaskCompletionNotificationEnabled] = useState(false);
+  const [askUserQuestionNotificationEnabled, setAskUserQuestionNotificationEnabled] = useState(false);
+  const [askUserQuestionSoundNotificationEnabled, setAskUserQuestionSoundNotificationEnabled] = useState(false);
+  const [systemNotificationOnlyWhenUnfocused, setSystemNotificationOnlyWhenUnfocused] = useState(false);
+  const [aiTitleGenerationEnabled, setAiTitleGenerationEnabled] = useState(true);
 
   // History completion toggle configuration
   const [historyCompletionEnabled, setHistoryCompletionEnabled] = useState<boolean>(() => {
@@ -325,6 +373,57 @@ export function useSettingsBasicActions({
     sendToJava('browse_sound_file:');
   }, []);
 
+  const handleNewSessionConfirmEnabledChange = useCallback((enabled: boolean) => {
+    setNewSessionConfirmEnabledState(enabled);
+    setNewSessionConfirmEnabled(enabled);
+  }, []);
+
+  const handleDetailedOutputEnabledChange = useCallback((enabled: boolean) => {
+    setDetailedOutputEnabledState(enabled);
+    setDetailedOutputEnabled(enabled);
+  }, []);
+
+  const handlePermissionDialogTimeoutChange = useCallback((seconds: number) => {
+    setPermissionDialogTimeoutSeconds(seconds);
+    setCurrentPermissionDialogTimeoutSeconds(seconds);
+    sendToJava(`set_permission_dialog_timeout:${JSON.stringify({ permissionDialogTimeoutSeconds: seconds })}`);
+  }, []);
+
+  const handleCommitGenerationEnabledChange = useCallback((enabled: boolean) => {
+    setCommitGenerationEnabled(enabled);
+    sendToJava(`set_commit_generation_enabled:${JSON.stringify({ commitGenerationEnabled: enabled })}`);
+  }, []);
+
+  const handleStatusBarWidgetEnabledChange = useCallback((enabled: boolean) => {
+    setStatusBarWidgetEnabled(enabled);
+    sendToJava(`set_status_bar_widget_enabled:${JSON.stringify({ statusBarWidgetEnabled: enabled })}`);
+  }, []);
+
+  const handleTaskCompletionNotificationEnabledChange = useCallback((enabled: boolean) => {
+    setTaskCompletionNotificationEnabled(enabled);
+    sendToJava(`set_task_completion_notification_enabled:${JSON.stringify({ taskCompletionNotificationEnabled: enabled })}`);
+  }, []);
+
+  const handleAskUserQuestionNotificationEnabledChange = useCallback((enabled: boolean) => {
+    setAskUserQuestionNotificationEnabled(enabled);
+    sendToJava(`set_ask_user_question_notification_enabled:${JSON.stringify({ askUserQuestionNotificationEnabled: enabled })}`);
+  }, []);
+
+  const handleAskUserQuestionSoundNotificationEnabledChange = useCallback((enabled: boolean) => {
+    setAskUserQuestionSoundNotificationEnabled(enabled);
+    sendToJava(`set_ask_user_question_sound_notification_enabled:${JSON.stringify({ askUserQuestionSoundNotificationEnabled: enabled })}`);
+  }, []);
+
+  const handleSystemNotificationOnlyWhenUnfocusedChange = useCallback((enabled: boolean) => {
+    setSystemNotificationOnlyWhenUnfocused(enabled);
+    sendToJava(`set_system_notification_only_when_unfocused:${JSON.stringify({ systemNotificationOnlyWhenUnfocused: enabled })}`);
+  }, []);
+
+  const handleAiTitleGenerationEnabledChange = useCallback((enabled: boolean) => {
+    setAiTitleGenerationEnabled(enabled);
+    sendToJava(`set_ai_title_generation_enabled:${JSON.stringify({ aiTitleGenerationEnabled: enabled })}`);
+  }, []);
+
   // Commit AI prompt save handler
   const handleSaveCommitPrompt = useCallback(() => {
     setSavingCommitPrompt(true);
@@ -345,6 +444,11 @@ export function useSettingsBasicActions({
   const handleSaveProjectDatabaseBinding = useCallback(() => {
     setSavingProjectDatabaseBinding(true);
     sendToJava(`set_project_database_binding:${JSON.stringify(projectDatabaseBinding)}`);
+  }, [projectDatabaseBinding]);
+
+  const handleTestProjectDatabaseConnection = useCallback(() => {
+    setTestingProjectDatabaseConnection(true);
+    sendToJava(`test_project_database_connection:${JSON.stringify(projectDatabaseBinding)}`);
   }, [projectDatabaseBinding]);
 
   // Nacos Registry config change handler
@@ -404,6 +508,8 @@ export function useSettingsBasicActions({
     setProjectDatabaseBinding,
     savingProjectDatabaseBinding,
     setSavingProjectDatabaseBinding,
+    testingProjectDatabaseConnection,
+    setTestingProjectDatabaseConnection,
     soundNotificationEnabled,
     setSoundNotificationEnabled,
     soundOnlyWhenUnfocused,
@@ -416,6 +522,34 @@ export function useSettingsBasicActions({
     setDiffExpandedByDefault,
     historyCompletionEnabled,
     setHistoryCompletionEnabled,
+    newSessionConfirmEnabled,
+    detailedOutputEnabled,
+    permissionDialogTimeoutSeconds,
+    setPermissionDialogTimeoutSeconds,
+    commitGenerationEnabled,
+    setCommitGenerationEnabled,
+    statusBarWidgetEnabled,
+    setStatusBarWidgetEnabled,
+    taskCompletionNotificationEnabled,
+    setTaskCompletionNotificationEnabled,
+    askUserQuestionNotificationEnabled,
+    setAskUserQuestionNotificationEnabled,
+    askUserQuestionSoundNotificationEnabled,
+    setAskUserQuestionSoundNotificationEnabled,
+    systemNotificationOnlyWhenUnfocused,
+    setSystemNotificationOnlyWhenUnfocused,
+    aiTitleGenerationEnabled,
+    setAiTitleGenerationEnabled,
+    handleNewSessionConfirmEnabledChange,
+    handleDetailedOutputEnabledChange,
+    handlePermissionDialogTimeoutChange,
+    handleCommitGenerationEnabledChange,
+    handleStatusBarWidgetEnabledChange,
+    handleTaskCompletionNotificationEnabledChange,
+    handleAskUserQuestionNotificationEnabledChange,
+    handleAskUserQuestionSoundNotificationEnabledChange,
+    handleSystemNotificationOnlyWhenUnfocusedChange,
+    handleAiTitleGenerationEnabledChange,
     handleSaveNodePath,
     handleSaveWorkingDirectory,
     handleStreamingEnabledChange,
@@ -432,6 +566,7 @@ export function useSettingsBasicActions({
     handleSaveCommitPrompt,
     handleProjectDatabaseBindingChange,
     handleSaveProjectDatabaseBinding,
+    handleTestProjectDatabaseConnection,
     nacosRegistryConfig,
     setNacosRegistryConfig,
     savingNacosRegistryConfig,

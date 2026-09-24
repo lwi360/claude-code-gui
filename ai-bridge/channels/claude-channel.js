@@ -25,7 +25,7 @@ export async function handleClaudeCommand(command, args, stdinData) {
     case 'send': {
       if (stdinData && stdinData.message !== undefined) {
         // Include streaming, disableThinking, reasoningEffort, and maxTurns when destructuring
-        const { message, sessionId, cwd, permissionMode, model, openedFiles, agentPrompt, streaming, disableThinking, reasoningEffort, maxTurns } = stdinData;
+        const { message, sessionId, cwd, permissionMode, model, openedFiles, agentPrompt, streaming, disableThinking, reasoningEffort, maxTurns, denyAllTools } = stdinData;
         await claudeSendMessage(
           message,
           sessionId || '',
@@ -36,7 +36,8 @@ export async function handleClaudeCommand(command, args, stdinData) {
           agentPrompt || null,
           streaming,  // Pass streaming parameter
           reasoningEffort || null,  // Pass reasoningEffort parameter
-          maxTurns || null  // Pass maxTurns parameter
+          maxTurns || null,  // Pass maxTurns parameter
+          !!denyAllTools
         );
       } else {
         await claudeSendMessage(args[0], args[1], args[2], args[3], args[4]);

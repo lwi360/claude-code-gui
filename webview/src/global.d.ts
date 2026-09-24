@@ -230,6 +230,15 @@ interface Window {
    */
   updateAutoOpenFileEnabled?: (json: string) => void;
 
+  updatePermissionDialogTimeout?: (json: string) => void;
+  updateCommitGenerationEnabled?: (json: string) => void;
+  updateStatusBarWidgetEnabled?: (json: string) => void;
+  updateTaskCompletionNotificationEnabled?: (json: string) => void;
+  updateAskUserQuestionNotificationEnabled?: (json: string) => void;
+  updateAskUserQuestionSoundNotificationEnabled?: (json: string) => void;
+  updateSystemNotificationOnlyWhenUnfocused?: (json: string) => void;
+  updateAiTitleGenerationEnabled?: (json: string) => void;
+
   /**
    * Update commit AI prompt configuration
    */
@@ -381,7 +390,7 @@ interface Window {
   /**
    * Update session title (called when session title changes)
    */
-  updateSessionTitle?: (title: string) => void;
+  updateSessionTitle?: (sessionId: string, title: string) => void;
 
   /**
    * Editor font config received callback - receives IDEA editor font configuration
@@ -754,6 +763,8 @@ interface Window {
   updateNacosRegistryConfig?: (json: string) => void;
   /** Nacos Registry config save result */
   nacosRegistryConfigSaved?: (json: string) => void;
+  /** Development database connection test result */
+  databaseConnectionTestResult?: (json: string) => void;
   /** Nacos connection test result */
   nacosConnectionTestResult?: (json: string) => void;
   /** Update registry skills list */

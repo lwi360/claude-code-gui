@@ -11,6 +11,7 @@ import com.intellij.openapi.diagnostic.Logger;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,6 +66,7 @@ public class DaemonBridge {
 
     // Lifecycle listener
     private volatile DaemonLifecycleListener lifecycleListener;
+    private final CopyOnWriteArrayList<DaemonEventListener> eventListeners = new CopyOnWriteArrayList<>();
 
     public DaemonBridge(
             NodeDetector nodeDetector,
@@ -549,8 +551,43 @@ public class DaemonBridge {
                 LOG.info("[DaemonBridge] Daemon shutting down");
                 break;
 
+            case "title_log": {
+                String titleLevel = obj.has("level") ? obj.get("level").getAsString() : "info";
+                String titleMsg = obj.has("message") ? obj.get("message").getAsString() : "";
+                if ("error".equals(titleLevel) || "warn".equals(titleLevel)) {
+                    LOG.warn("[TitleService] " + titleMsg);
+                } else {
+                    LOG.info("[TitleService] " + titleMsg);
+                }
+                break;
+            }
+
+            case "title_generated":
+                notifyDaemonEventListeners(event, obj);
+                break;
+
             default:
                 LOG.debug("[DaemonBridge] Unhandled daemon event: " + event);
+        }
+    }
+
+    public void addDaemonEventListener(DaemonEventListener listener) {
+        if (listener != null) {
+            eventListeners.addIfAbsent(listener);
+        }
+    }
+
+    public void removeDaemonEventListener(DaemonEventListener listener) {
+        eventListeners.remove(listener);
+    }
+
+    private void notifyDaemonEventListeners(String event, JsonObject data) {
+        for (DaemonEventListener listener : eventListeners) {
+            try {
+                listener.onDaemonEvent(event, data);
+            } catch (Exception ex) {
+                LOG.warn("[DaemonBridge] Listener threw while handling " + event, ex);
+            }
         }
     }
 
@@ -652,6 +689,13 @@ public class DaemonBridge {
     public interface DaemonLifecycleListener {
         void onDaemonReady();
         void onDaemonDied();
+    }
+
+    /**
+     * Listener for custom daemon events such as an AI-generated session title.
+     */
+    public interface DaemonEventListener {
+        void onDaemonEvent(String event, JsonObject data);
     }
 
     /**

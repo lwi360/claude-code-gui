@@ -76,6 +76,7 @@ class ClaudeProcessInvoker {
             Boolean disableThinking,
             String reasoningEffort,
             Integer maxTurns,
+            boolean denyAllTools,
             MessageCallback callback
     ) {
         final boolean[] errorAlreadyReported = {false};
@@ -114,7 +115,8 @@ class ClaudeProcessInvoker {
                         streaming,
                         disableThinking,
                         reasoningEffort,
-                        maxTurns
+                        maxTurns,
+                        denyAllTools
                 );
                 String stdinJson = gson.toJson(stdinInput);
                 String preview = logSanitizer.buildPreview(stdinJson, 500);

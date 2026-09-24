@@ -11,6 +11,7 @@ import type { UseWindowCallbacksOptions } from '../../useWindowCallbacks';
 import type { PermissionMode } from '../../../components/ChatInputBox/types';
 import { isValidPermissionMode } from '../../../components/ChatInputBox/types';
 import { drainPendingSettings, startInitialSettingsRequest } from '../settingsBootstrap';
+import { setCurrentPermissionDialogTimeoutSeconds } from '../../../utils/permissionDialogTimeout';
 
 export function registerUsageModeCallbacks(options: UseWindowCallbacksOptions): void {
   const {
@@ -155,6 +156,17 @@ export function registerUsageModeCallbacks(options: UseWindowCallbacksOptions): 
       setAutoOpenFileEnabled(data.autoOpenFileEnabled ?? false);
     } catch (error) {
       console.error('[Frontend] Failed to parse auto open file enabled:', error);
+    }
+  };
+
+  window.updatePermissionDialogTimeout = (jsonStr: string) => {
+    try {
+      const data = JSON.parse(jsonStr);
+      if (typeof data?.permissionDialogTimeoutSeconds === 'number') {
+        setCurrentPermissionDialogTimeoutSeconds(data.permissionDialogTimeoutSeconds);
+      }
+    } catch (error) {
+      console.error('[Frontend] Failed to parse permission dialog timeout:', error);
     }
   };
 

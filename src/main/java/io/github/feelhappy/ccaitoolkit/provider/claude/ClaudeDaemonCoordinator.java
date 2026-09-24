@@ -8,6 +8,7 @@ import com.google.gson.JsonObject;
 import com.intellij.openapi.diagnostic.Logger;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
@@ -25,6 +26,7 @@ class ClaudeDaemonCoordinator {
 
     private volatile DaemonBridge daemonBridge;
     private final Object daemonLock = new Object();
+    private final CopyOnWriteArrayList<DaemonBridge.DaemonEventListener> eventListeners = new CopyOnWriteArrayList<>();
     private volatile long daemonRetryAfter = 0;
     private volatile CompletableFuture<?> prewarmFuture;
 
@@ -67,6 +69,7 @@ class ClaudeDaemonCoordinator {
                         envConfigurator
                 );
                 if (newBridge.start()) {
+                    attachEventListeners(newBridge);
                     daemonBridge = newBridge;
                     daemonRetryAfter = 0;
                     log.info("[DaemonCoordinator] Daemon bridge started successfully");
@@ -82,6 +85,35 @@ class ClaudeDaemonCoordinator {
 
     DaemonBridge getCurrentDaemonBridge() {
         return daemonBridge;
+    }
+
+    void addDaemonEventListener(DaemonBridge.DaemonEventListener listener) {
+        if (listener == null) {
+            return;
+        }
+        synchronized (daemonLock) {
+            eventListeners.addIfAbsent(listener);
+            DaemonBridge current = daemonBridge;
+            if (current != null) {
+                current.addDaemonEventListener(listener);
+            }
+        }
+    }
+
+    void removeDaemonEventListener(DaemonBridge.DaemonEventListener listener) {
+        synchronized (daemonLock) {
+            eventListeners.remove(listener);
+            DaemonBridge current = daemonBridge;
+            if (current != null) {
+                current.removeDaemonEventListener(listener);
+            }
+        }
+    }
+
+    private void attachEventListeners(DaemonBridge bridge) {
+        for (DaemonBridge.DaemonEventListener listener : eventListeners) {
+            bridge.addDaemonEventListener(listener);
+        }
     }
 
     void shutdownDaemon() {

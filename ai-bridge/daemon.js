@@ -89,6 +89,20 @@ function sendDaemonEvent(event, data = {}) {
   writeRawLine({ type: 'daemon', event, ...data });
 }
 
+function isTitleDaemonLine(line) {
+  const trimmed = line.trim();
+  if (!trimmed.startsWith('{')) {
+    return false;
+  }
+  try {
+    const parsed = JSON.parse(trimmed);
+    return parsed?.type === 'daemon'
+      && (parsed.event === 'title_generated' || parsed.event === 'title_log');
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Override process.stdout.write to tag output with request ID.
  */
@@ -101,7 +115,11 @@ process.stdout.write = function (chunk, encoding, callback) {
     const lines = text.split('\n');
     for (const line of lines) {
       if (line.length > 0) {
-        writeRawLine({ id: activeRequestId, line });
+        if (isTitleDaemonLine(line)) {
+          _originalStdoutWrite(line + '\n', 'utf8');
+        } else {
+          writeRawLine({ id: activeRequestId, line });
+        }
       }
     }
     if (typeof callback === 'function') callback();

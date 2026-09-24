@@ -3,8 +3,10 @@ package io.github.feelhappy.ccaitoolkit.handler;
 import io.github.feelhappy.ccaitoolkit.handler.core.BaseMessageHandler;
 import io.github.feelhappy.ccaitoolkit.handler.core.HandlerContext;
 
+import io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier;
 import io.github.feelhappy.ccaitoolkit.permission.PermissionRequest;
 import io.github.feelhappy.ccaitoolkit.permission.PermissionService;
+import io.github.feelhappy.ccaitoolkit.settings.CodemossSettingsService;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.intellij.openapi.application.ApplicationManager;
@@ -27,7 +29,15 @@ public class PermissionHandler extends BaseMessageHandler {
     private static final Logger LOG = Logger.getInstance(PermissionHandler.class);
 
     // Permission request timeout (5 minutes), consistent with Node-side PERMISSION_TIMEOUT_MS
-    private static final long PERMISSION_TIMEOUT_SECONDS = 300;
+    private static final long PERMISSION_TIMEOUT_SECONDS = CodemossSettingsService.DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS;
+
+    private long permissionTimeoutSeconds() {
+        try {
+            return new CodemossSettingsService().getPermissionDialogTimeoutSeconds();
+        } catch (Exception e) {
+            return PERMISSION_TIMEOUT_SECONDS;
+        }
+    }
 
     private static final String[] SUPPORTED_TYPES = {
         "permission_decision",
@@ -123,7 +133,7 @@ public class PermissionHandler extends BaseMessageHandler {
             });
 
             // Timeout handling (give users enough time to review the context)
-            CompletableFuture.delayedExecutor(PERMISSION_TIMEOUT_SECONDS, TimeUnit.SECONDS).execute(() -> {
+            CompletableFuture.delayedExecutor(permissionTimeoutSeconds(), TimeUnit.SECONDS).execute(() -> {
                 if (!future.isDone()) {
                     LOG.warn("[PERM_SHOW] Timeout! Removing pending request for channelId=" + channelId);
                     pendingPermissionRequests.remove(channelId);
@@ -336,10 +346,14 @@ public class PermissionHandler extends BaseMessageHandler {
                     "})(30);";
 
                 context.executeJavaScriptOnEDT(jsCode);
+                Project project = context.getProject();
+                if (project != null) {
+                    ClaudeNotifier.showAskUserQuestion(project);
+                }
             });
 
             // Timeout handling (consistent with regular permission requests: 5 minutes)
-            CompletableFuture.delayedExecutor(PERMISSION_TIMEOUT_SECONDS, TimeUnit.SECONDS).execute(() -> {
+            CompletableFuture.delayedExecutor(permissionTimeoutSeconds(), TimeUnit.SECONDS).execute(() -> {
                 if (!future.isDone()) {
                     LOG.warn("[ASK_USER_QUESTION][SHOW_DIALOG] Timeout! Removing pending request for requestId=" + requestId);
                     pendingAskUserQuestionRequests.remove(requestId);
@@ -416,7 +430,7 @@ public class PermissionHandler extends BaseMessageHandler {
             });
 
             // Timeout handling (consistent with other permission requests: 5 minutes)
-            CompletableFuture.delayedExecutor(PERMISSION_TIMEOUT_SECONDS, TimeUnit.SECONDS).execute(() -> {
+            CompletableFuture.delayedExecutor(permissionTimeoutSeconds(), TimeUnit.SECONDS).execute(() -> {
                 if (!future.isDone()) {
                     pendingPlanApprovalRequests.remove(requestId);
                     // Return rejection on timeout

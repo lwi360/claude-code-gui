@@ -17,6 +17,7 @@ import { ContentBlockRenderer } from './ContentBlockRenderer';
 import { formatTime } from '../../utils/helpers';
 import { copyToClipboard } from '../../utils/copyUtils';
 import { READ_TOOL_NAMES, EDIT_TOOL_NAMES, BASH_TOOL_NAMES, SEARCH_TOOL_NAMES, isToolName } from '../../utils/toolConstants';
+import { isDetailedOutputEnabled, subscribeDetailedOutput } from '../../utils/detailedOutputPreference';
 
 export interface MessageItemProps {
   message: ClaudeMessage;
@@ -225,6 +226,8 @@ export const MessageItem = memo(function MessageItem({
 
   // Manage thinking expansion state locally to avoid prop drilling and unnecessary re-renders
   const [expandedThinking, setExpandedThinking] = useState<Record<number, boolean>>({});
+  const [detailedOutput, setDetailedOutput] = useState(isDetailedOutputEnabled);
+  useEffect(() => subscribeDetailedOutput(setDetailedOutput), []);
   // Track which thinking blocks were manually expanded by the user
   const [manuallyExpandedThinking, setManuallyExpandedThinking] = useState<Record<number, boolean>>({});
 
@@ -311,9 +314,24 @@ export const MessageItem = memo(function MessageItem({
   // Ref to track the last auto-expanded thinking block index to avoid overriding user interaction
   const lastAutoExpandedIndexRef = useRef<number>(-1);
 
+  useEffect(() => {
+    if (!detailedOutput) return;
+    setExpandedThinking((prev) => {
+      const next = { ...prev };
+      let changed = false;
+      blocks.forEach((block, index) => {
+        if (block.type === 'thinking' && !next[index]) {
+          next[index] = true;
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [detailedOutput, blocks]);
+
   // Auto-expand the latest thinking block during streaming
   useEffect(() => {
-    if (!isMessageStreaming) return;
+    if (detailedOutput || !isMessageStreaming) return;
 
     const thinkingIndices = blocks
       .map((block, index) => (block.type === 'thinking' ? index : -1))
@@ -341,7 +359,7 @@ export const MessageItem = memo(function MessageItem({
       });
       lastAutoExpandedIndexRef.current = lastThinkingIndex;
     }
-  }, [blocks, isMessageStreaming, manuallyExpandedThinking]);
+  }, [blocks, detailedOutput, isMessageStreaming, manuallyExpandedThinking]);
 
   const groupedBlocks = useMemo(() => groupBlocks(blocks), [blocks]);
 

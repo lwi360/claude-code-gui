@@ -643,6 +643,9 @@
         "generatedConfig": "生成的配置",
         "bundledServer": "使用插件内置 db-mcp-server",
         "resolvedInstallDir": "实际服务目录",
+        "testConnection": "测试连接",
+        "testSuccess": "连接成功（{{dialect}}，{{elapsed}} ms）",
+        "testFailed": "连接失败：{{message}}",
         "fields": {
           "dbMcpServerPath": {
             "label": "db-mcp-server 路径",
@@ -748,6 +751,65 @@
         "enabled": "已展开",
         "disabled": "已折叠",
         "hint": "开启后，聊天中的代码差异将默认展开显示。关闭后，差异默认折叠，可点击展开。"
+      },
+      "newSessionConfirm": {
+        "label": "新建会话确认",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "开启后，当前会话已有消息时新建会话会先确认。AI 正在回复时仍会要求确认中断。"
+      },
+      "aiTitleGeneration": {
+        "label": "AI 生成会话标题",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "首次对话结束后，使用当前供应商的快速模型生成一句会话标题，并显示在聊天标题和历史列表中。"
+      },
+      "detailedOutput": {
+        "label": "详细输出",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "开启后，思考过程默认保持展开。"
+      },
+      "permissionDialogTimeout": {
+        "label": "权限对话框超时",
+        "hint": "权限、计划和提问对话框的等待时间，范围 30–3600 秒，默认 300 秒。",
+        "unit": "秒"
+      },
+      "commitGeneration": {
+        "label": "AI 生成提交说明",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "关闭后，版本控制中的“用 AI 生成提交说明”入口会隐藏。"
+      },
+      "statusBarWidget": {
+        "label": "状态栏组件",
+        "enabled": "已显示",
+        "disabled": "已隐藏",
+        "hint": "控制 IDE 状态栏上的 CC AI Toolkit 状态显示。"
+      },
+      "taskCompletionNotification": {
+        "label": "任务完成通知",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "任务完成时在 IDE 弹出通知。提示音仍由上方的任务完成提示音控制。"
+      },
+      "askUserQuestionNotification": {
+        "label": "提问通知",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "Claude 需要你回答问题时弹出 IDE 通知。"
+      },
+      "askUserQuestionSound": {
+        "label": "提问提示音",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "Claude 提问时播放当前选择的提示音。"
+      },
+      "systemNotificationOnlyWhenUnfocused": {
+        "label": "仅在 IDE 未聚焦时通知",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "开启后，任务完成和提问的系统通知只在 IDE 窗口未聚焦时出现。"
       },
       "sendShortcut": {
         "label": "发送快捷键",

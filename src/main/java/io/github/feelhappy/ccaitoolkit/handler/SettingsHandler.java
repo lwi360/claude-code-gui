@@ -37,6 +37,7 @@ public class SettingsHandler extends BaseMessageHandler {
         "set_working_directory",
         "get_project_database_binding",
         "set_project_database_binding",
+        "test_project_database_connection",
         "get_editor_font_config",
         "get_streaming_enabled",
         "set_streaming_enabled",
@@ -46,6 +47,22 @@ public class SettingsHandler extends BaseMessageHandler {
         "set_send_shortcut",
         "get_auto_open_file_enabled",
         "set_auto_open_file_enabled",
+        "get_permission_dialog_timeout",
+        "set_permission_dialog_timeout",
+        "get_commit_generation_enabled",
+        "set_commit_generation_enabled",
+        "get_status_bar_widget_enabled",
+        "set_status_bar_widget_enabled",
+        "get_task_completion_notification_enabled",
+        "set_task_completion_notification_enabled",
+        "get_ask_user_question_notification_enabled",
+        "set_ask_user_question_notification_enabled",
+        "get_ask_user_question_sound_notification_enabled",
+        "set_ask_user_question_sound_notification_enabled",
+        "get_system_notification_only_when_unfocused",
+        "set_system_notification_only_when_unfocused",
+        "get_ai_title_generation_enabled",
+        "set_ai_title_generation_enabled",
         "get_ide_theme",
         "get_commit_prompt",
         "set_commit_prompt",
@@ -135,6 +152,9 @@ public class SettingsHandler extends BaseMessageHandler {
             case "set_project_database_binding":
                 projectConfigHandler.handleSetProjectDatabaseBinding(content);
                 return true;
+            case "test_project_database_connection":
+                projectConfigHandler.handleTestProjectDatabaseConnection(content);
+                return true;
             case "get_editor_font_config":
                 projectConfigHandler.handleGetEditorFontConfig();
                 return true;
@@ -161,6 +181,54 @@ public class SettingsHandler extends BaseMessageHandler {
                 return true;
             case "set_auto_open_file_enabled":
                 projectConfigHandler.handleSetAutoOpenFileEnabled(content);
+                return true;
+            case "get_permission_dialog_timeout":
+                projectConfigHandler.handleGetPermissionDialogTimeout();
+                return true;
+            case "set_permission_dialog_timeout":
+                projectConfigHandler.handleSetPermissionDialogTimeout(content);
+                return true;
+            case "get_commit_generation_enabled":
+                projectConfigHandler.handleGetCommitGenerationEnabled();
+                return true;
+            case "set_commit_generation_enabled":
+                projectConfigHandler.handleSetCommitGenerationEnabled(content);
+                return true;
+            case "get_status_bar_widget_enabled":
+                projectConfigHandler.handleGetStatusBarWidgetEnabled();
+                return true;
+            case "set_status_bar_widget_enabled":
+                projectConfigHandler.handleSetStatusBarWidgetEnabled(content);
+                return true;
+            case "get_task_completion_notification_enabled":
+                projectConfigHandler.handleGetTaskCompletionNotificationEnabled();
+                return true;
+            case "set_task_completion_notification_enabled":
+                projectConfigHandler.handleSetTaskCompletionNotificationEnabled(content);
+                return true;
+            case "get_ask_user_question_notification_enabled":
+                projectConfigHandler.handleGetAskUserQuestionNotificationEnabled();
+                return true;
+            case "set_ask_user_question_notification_enabled":
+                projectConfigHandler.handleSetAskUserQuestionNotificationEnabled(content);
+                return true;
+            case "get_ask_user_question_sound_notification_enabled":
+                projectConfigHandler.handleGetAskUserQuestionSoundNotificationEnabled();
+                return true;
+            case "set_ask_user_question_sound_notification_enabled":
+                projectConfigHandler.handleSetAskUserQuestionSoundNotificationEnabled(content);
+                return true;
+            case "get_system_notification_only_when_unfocused":
+                projectConfigHandler.handleGetSystemNotificationOnlyWhenUnfocused();
+                return true;
+            case "set_system_notification_only_when_unfocused":
+                projectConfigHandler.handleSetSystemNotificationOnlyWhenUnfocused(content);
+                return true;
+            case "get_ai_title_generation_enabled":
+                projectConfigHandler.handleGetAiTitleGenerationEnabled();
+                return true;
+            case "set_ai_title_generation_enabled":
+                projectConfigHandler.handleSetAiTitleGenerationEnabled(content);
                 return true;
             case "get_ide_theme":
                 projectConfigHandler.handleGetIdeTheme();

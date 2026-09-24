@@ -7,6 +7,7 @@ import io.github.feelhappy.ccaitoolkit.handler.core.MessageDispatcher;
 import io.github.feelhappy.ccaitoolkit.handler.PermissionHandler;
 import io.github.feelhappy.ccaitoolkit.permission.PermissionService;
 import io.github.feelhappy.ccaitoolkit.provider.claude.ClaudeSDKBridge;
+import io.github.feelhappy.ccaitoolkit.provider.common.DaemonBridge;
 import io.github.feelhappy.ccaitoolkit.provider.codex.CodexSDKBridge;
 import io.github.feelhappy.ccaitoolkit.provider.common.MessageCallback;
 import io.github.feelhappy.ccaitoolkit.session.ClaudeSession;
@@ -74,6 +75,7 @@ public class ClaudeChatWindow {
     private final EditorContextTracker editorContextTracker;
     private final ChatWindowDelegate chatWindowDelegate;
     private SessionCallbackAdapter sessionCallbackAdapter;
+    private DaemonBridge.DaemonEventListener titleEventListener;
 
     public ClaudeChatWindow(Project project) {
         this(project, false);
@@ -476,6 +478,29 @@ public class ClaudeChatWindow {
                 this::onStreamEnded
         );
         session.setCallback(sessionCallbackAdapter);
+        ensureTitleEventListener();
+    }
+
+    private void ensureTitleEventListener() {
+        if (this.titleEventListener != null) {
+            return;
+        }
+        this.titleEventListener = (event, data) -> {
+            if (!"title_generated".equals(event) || data == null) {
+                return;
+            }
+            String generatedSessionId = data.has("sessionId") && !data.get("sessionId").isJsonNull()
+                    ? data.get("sessionId").getAsString() : null;
+            String title = data.has("title") && !data.get("title").isJsonNull()
+                    ? data.get("title").getAsString() : null;
+            if (generatedSessionId == null || generatedSessionId.isEmpty()
+                    || title == null || title.isEmpty()) {
+                return;
+            }
+            callJavaScript("updateSessionTitle",
+                    JsUtils.escapeJs(generatedSessionId), JsUtils.escapeJs(title));
+        };
+        claudeSDKBridge.addDaemonEventListener(this.titleEventListener);
     }
 
     private void onStreamEnded() {
@@ -487,7 +512,7 @@ public class ClaudeChatWindow {
         // Only trigger success when the session has no error state,
         // to avoid conflicting with the error notification from SessionHandler.exceptionally().
         if ("claude".equals(session.getProvider()) && session.getError() == null) {
-            io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier.showSuccess(project, "Task completed");
+            io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier.showTaskCompleted(project, "Task completed");
         }
     }
 
@@ -567,6 +592,10 @@ public class ClaudeChatWindow {
         streamCoalescer.dispose();
         if (sessionCallbackAdapter != null) {
             sessionCallbackAdapter.dispose();
+        }
+        if (titleEventListener != null) {
+            claudeSDKBridge.removeDaemonEventListener(titleEventListener);
+            titleEventListener = null;
         }
         webviewWatchdog.stop();
 

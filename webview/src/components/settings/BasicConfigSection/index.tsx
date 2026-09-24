@@ -37,6 +37,8 @@ interface BasicConfigSectionProps {
   ) => void;
   onSaveProjectDatabaseBinding?: () => void;
   savingProjectDatabaseBinding?: boolean;
+  onTestProjectDatabaseConnection?: () => void;
+  testingProjectDatabaseConnection?: boolean;
   // Nacos Registry
   nacosRegistryConfig?: NacosRegistryConfig;
   onNacosRegistryConfigChange?: <K extends keyof NacosRegistryConfig>(
@@ -82,6 +84,26 @@ interface BasicConfigSectionProps {
   onSaveCustomSoundPath?: () => void;
   onTestSound?: () => void;
   onBrowseSound?: () => void;
+  newSessionConfirmEnabled?: boolean;
+  onNewSessionConfirmEnabledChange?: (enabled: boolean) => void;
+  detailedOutputEnabled?: boolean;
+  onDetailedOutputEnabledChange?: (enabled: boolean) => void;
+  permissionDialogTimeoutSeconds?: number;
+  onPermissionDialogTimeoutChange?: (seconds: number) => void;
+  commitGenerationEnabled?: boolean;
+  onCommitGenerationEnabledChange?: (enabled: boolean) => void;
+  statusBarWidgetEnabled?: boolean;
+  onStatusBarWidgetEnabledChange?: (enabled: boolean) => void;
+  taskCompletionNotificationEnabled?: boolean;
+  onTaskCompletionNotificationEnabledChange?: (enabled: boolean) => void;
+  askUserQuestionNotificationEnabled?: boolean;
+  onAskUserQuestionNotificationEnabledChange?: (enabled: boolean) => void;
+  askUserQuestionSoundNotificationEnabled?: boolean;
+  onAskUserQuestionSoundNotificationEnabledChange?: (enabled: boolean) => void;
+  systemNotificationOnlyWhenUnfocused?: boolean;
+  onSystemNotificationOnlyWhenUnfocusedChange?: (enabled: boolean) => void;
+  aiTitleGenerationEnabled?: boolean;
+  onAiTitleGenerationEnabledChange?: (enabled: boolean) => void;
 }
 
 const BasicConfigSection = (props: BasicConfigSectionProps) => {
@@ -143,6 +165,26 @@ const BasicConfigSection = (props: BasicConfigSectionProps) => {
           onSaveCustomSoundPath={props.onSaveCustomSoundPath}
           onTestSound={props.onTestSound}
           onBrowseSound={props.onBrowseSound}
+          newSessionConfirmEnabled={props.newSessionConfirmEnabled}
+          onNewSessionConfirmEnabledChange={props.onNewSessionConfirmEnabledChange}
+          detailedOutputEnabled={props.detailedOutputEnabled}
+          onDetailedOutputEnabledChange={props.onDetailedOutputEnabledChange}
+          permissionDialogTimeoutSeconds={props.permissionDialogTimeoutSeconds}
+          onPermissionDialogTimeoutChange={props.onPermissionDialogTimeoutChange}
+          commitGenerationEnabled={props.commitGenerationEnabled}
+          onCommitGenerationEnabledChange={props.onCommitGenerationEnabledChange}
+          statusBarWidgetEnabled={props.statusBarWidgetEnabled}
+          onStatusBarWidgetEnabledChange={props.onStatusBarWidgetEnabledChange}
+          taskCompletionNotificationEnabled={props.taskCompletionNotificationEnabled}
+          onTaskCompletionNotificationEnabledChange={props.onTaskCompletionNotificationEnabledChange}
+          askUserQuestionNotificationEnabled={props.askUserQuestionNotificationEnabled}
+          onAskUserQuestionNotificationEnabledChange={props.onAskUserQuestionNotificationEnabledChange}
+          askUserQuestionSoundNotificationEnabled={props.askUserQuestionSoundNotificationEnabled}
+          onAskUserQuestionSoundNotificationEnabledChange={props.onAskUserQuestionSoundNotificationEnabledChange}
+          systemNotificationOnlyWhenUnfocused={props.systemNotificationOnlyWhenUnfocused}
+          onSystemNotificationOnlyWhenUnfocusedChange={props.onSystemNotificationOnlyWhenUnfocusedChange}
+          aiTitleGenerationEnabled={props.aiTitleGenerationEnabled}
+          onAiTitleGenerationEnabledChange={props.onAiTitleGenerationEnabledChange}
         />
       )}
 
@@ -162,6 +204,8 @@ const BasicConfigSection = (props: BasicConfigSectionProps) => {
           onProjectDatabaseBindingChange={props.onProjectDatabaseBindingChange}
           onSaveProjectDatabaseBinding={props.onSaveProjectDatabaseBinding}
           savingProjectDatabaseBinding={props.savingProjectDatabaseBinding}
+          onTestProjectDatabaseConnection={props.onTestProjectDatabaseConnection}
+          testingProjectDatabaseConnection={props.testingProjectDatabaseConnection}
           nacosRegistryConfig={props.nacosRegistryConfig}
           onNacosRegistryConfigChange={props.onNacosRegistryConfigChange}
           onSaveNacosRegistryConfig={props.onSaveNacosRegistryConfig}

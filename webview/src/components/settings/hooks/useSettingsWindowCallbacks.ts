@@ -11,6 +11,7 @@ import {
   type ProjectDatabaseBinding,
 } from '../projectDatabaseBinding';
 import type { NacosRegistryConfig } from '../../../types/registry';
+import { setCurrentPermissionDialogTimeoutSeconds } from '../../../utils/permissionDialogTimeout';
 
 const sendToJava = (message: string) => {
   if (window.sendToJava) {
@@ -47,6 +48,15 @@ export interface SettingsWindowCallbacksDeps {
   setNacosRegistryConfig?: (config: NacosRegistryConfig) => void;
   setSavingNacosRegistryConfig?: (saving: boolean) => void;
   setTestingNacosConnection?: (testing: boolean) => void;
+  setTestingProjectDatabaseConnection?: (testing: boolean) => void;
+  setPermissionDialogTimeoutSeconds?: (seconds: number) => void;
+  setCommitGenerationEnabled?: (enabled: boolean) => void;
+  setStatusBarWidgetEnabled?: (enabled: boolean) => void;
+  setTaskCompletionNotificationEnabled?: (enabled: boolean) => void;
+  setAskUserQuestionNotificationEnabled?: (enabled: boolean) => void;
+  setAskUserQuestionSoundNotificationEnabled?: (enabled: boolean) => void;
+  setSystemNotificationOnlyWhenUnfocused?: (enabled: boolean) => void;
+  setAiTitleGenerationEnabled?: (enabled: boolean) => void;
 
   // Hook functions
   updateProviders: (providers: ProviderConfig[]) => void;
@@ -418,6 +428,25 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
       }
     };
 
+    window.databaseConnectionTestResult = (jsonStr: string) => {
+      try {
+        const result = JSON.parse(jsonStr);
+        d().setTestingProjectDatabaseConnection?.(false);
+        if (result.success) {
+          d().addToast(t('settings.basic.databaseBinding.testSuccess', {
+            dialect: result.dialect || '',
+            elapsed: result.executionTimeMs ?? 0,
+          }), 'success');
+        } else {
+          d().addToast(t('settings.basic.databaseBinding.testFailed', {
+            message: result.message || '',
+          }), 'error');
+        }
+      } catch (error) {
+        d().setTestingProjectDatabaseConnection?.(false);
+      }
+    };
+
     window.nacosConnectionTestResult = (jsonStr: string) => {
       try {
         const result = JSON.parse(jsonStr);
@@ -438,6 +467,80 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
       }
     };
 
+    const previousUpdatePermissionDialogTimeout = window.updatePermissionDialogTimeout;
+    window.updatePermissionDialogTimeout = (jsonStr: string) => {
+      try {
+        const data = JSON.parse(jsonStr);
+        const seconds = typeof data?.permissionDialogTimeoutSeconds === 'number'
+          ? data.permissionDialogTimeoutSeconds
+          : 300;
+        d().setPermissionDialogTimeoutSeconds?.(seconds);
+        setCurrentPermissionDialogTimeoutSeconds(seconds);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse permission dialog timeout:', error);
+      }
+    };
+
+    const applyBoolean = (
+      jsonStr: string,
+      key: string,
+      fallback: boolean,
+      setter?: (enabled: boolean) => void,
+    ) => {
+      const data = JSON.parse(jsonStr);
+      setter?.(typeof data?.[key] === 'boolean' ? data[key] : fallback);
+    };
+
+    window.updateCommitGenerationEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'commitGenerationEnabled', true, d().setCommitGenerationEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse commit generation setting:', error);
+      }
+    };
+    window.updateStatusBarWidgetEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'statusBarWidgetEnabled', true, d().setStatusBarWidgetEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse status bar widget setting:', error);
+      }
+    };
+    window.updateTaskCompletionNotificationEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'taskCompletionNotificationEnabled', false, d().setTaskCompletionNotificationEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse task completion notification setting:', error);
+      }
+    };
+    window.updateAskUserQuestionNotificationEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'askUserQuestionNotificationEnabled', false, d().setAskUserQuestionNotificationEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse ask-user notification setting:', error);
+      }
+    };
+    window.updateAskUserQuestionSoundNotificationEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'askUserQuestionSoundNotificationEnabled', false, d().setAskUserQuestionSoundNotificationEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse ask-user sound setting:', error);
+      }
+    };
+    window.updateSystemNotificationOnlyWhenUnfocused = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'systemNotificationOnlyWhenUnfocused', false, d().setSystemNotificationOnlyWhenUnfocused);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse unfocused notification setting:', error);
+      }
+    };
+    window.updateAiTitleGenerationEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'aiTitleGenerationEnabled', true, d().setAiTitleGenerationEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse AI title generation setting:', error);
+      }
+    };
+
     // Initial data loading
     d().loadProviders();
     d().loadCodexProviders();
@@ -453,6 +556,14 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
     sendToJava('get_commit_prompt:');
     sendToJava('get_sound_notification_config:');
     sendToJava('get_nacos_registry_config:');
+    sendToJava('get_permission_dialog_timeout:');
+    sendToJava('get_commit_generation_enabled:');
+    sendToJava('get_status_bar_widget_enabled:');
+    sendToJava('get_task_completion_notification_enabled:');
+    sendToJava('get_ask_user_question_notification_enabled:');
+    sendToJava('get_ask_user_question_sound_notification_enabled:');
+    sendToJava('get_system_notification_only_when_unfocused:');
+    sendToJava('get_ai_title_generation_enabled:');
 
     return () => {
       d().cleanupAgentsTimeout();
@@ -491,7 +602,16 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
       window.updateCurrentCodexConfig = undefined;
       window.updateNacosRegistryConfig = undefined;
       window.nacosRegistryConfigSaved = undefined;
+      window.databaseConnectionTestResult = undefined;
       window.nacosConnectionTestResult = undefined;
+      window.updatePermissionDialogTimeout = previousUpdatePermissionDialogTimeout;
+      window.updateCommitGenerationEnabled = undefined;
+      window.updateStatusBarWidgetEnabled = undefined;
+      window.updateTaskCompletionNotificationEnabled = undefined;
+      window.updateAskUserQuestionNotificationEnabled = undefined;
+      window.updateAskUserQuestionSoundNotificationEnabled = undefined;
+      window.updateSystemNotificationOnlyWhenUnfocused = undefined;
+      window.updateAiTitleGenerationEnabled = undefined;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);

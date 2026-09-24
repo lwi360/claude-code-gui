@@ -4,6 +4,7 @@
  */
 
 import { isCustomBaseUrl, loadClaudeSettings, setupApiKey } from '../../config/api-config.js';
+import { generateSessionTitle } from '../session-title-service.js';
 import { selectWorkingDirectory } from '../../utils/path-utils.js';
 import { mapModelIdToSdkName, resolveModelFromSettings, setModelEnvironmentVariables } from '../../utils/model-utils.js';
 import { AsyncStream } from '../../utils/async-stream.js';
@@ -60,7 +61,23 @@ function resolveThinkingConfig(settings, reasoningEffort) {
 /**
  * Build query options object shared by both send functions.
  */
-function buildQueryOptions({ workingDirectory, permissionMode, sdkModelName, maxThinkingTokens, effort, streamingEnabled, systemPromptAppend, preToolUseHook, sdkStderrLines, maxTurns }) {
+function buildQueryOptions({ workingDirectory, permissionMode, sdkModelName, maxThinkingTokens, effort, streamingEnabled, systemPromptAppend, preToolUseHook, sdkStderrLines, maxTurns, denyAllTools }) {
+  if (denyAllTools) {
+    return {
+      cwd: workingDirectory,
+      permissionMode: 'default',
+      model: sdkModelName,
+      maxTurns: 1,
+      tools: [],
+      thinking: { type: 'disabled' },
+      systemPrompt: {
+        type: 'preset',
+        preset: 'claude_code',
+        ...(systemPromptAppend && { append: systemPromptAppend })
+      }
+    };
+  }
+
   return {
     cwd: workingDirectory,
     permissionMode,
@@ -263,7 +280,7 @@ function emitThinkingDelta(thinkingText, state) {
 /**
  * Execute a query call with auto-retry logic for transient API errors.
  */
-async function executeWithRetry({ createQueryResult, streamingEnabled, resumeSessionId, workingDirectory, logPrefix, outerStreamState }) {
+async function executeWithRetry({ createQueryResult, streamingEnabled, resumeSessionId, workingDirectory, userMessage, logPrefix, outerStreamState }) {
   let retryAttempt = 0;
   let lastRetryError = null;
   const lp = logPrefix ? ` ${logPrefix}` : '';
@@ -320,6 +337,9 @@ async function executeWithRetry({ createQueryResult, streamingEnabled, resumeSes
       outerStreamState.streamStarted = state.streamStarted;
       console.log('[MESSAGE_END]');
       console.log(JSON.stringify({ success: true, sessionId: state.currentSessionId }));
+      if (userMessage && state.currentSessionId && !resumeSessionId) {
+        void generateSessionTitle(userMessage, state.currentSessionId, workingDirectory);
+      }
       break;
 
     } catch (retryError) {
@@ -397,7 +417,7 @@ function handleSendError(error, streamState, sdkStderrLines) {
  * @param {string} agentPrompt - Agent prompt (optional)
  * @param {boolean} streaming - Whether to enable streaming (optional, defaults to config value)
  */
-export async function sendMessage(message, resumeSessionId = null, cwd = null, permissionMode = null, model = null, openedFiles = null, agentPrompt = null, streaming = null, reasoningEffort = null, maxTurns = null) {
+export async function sendMessage(message, resumeSessionId = null, cwd = null, permissionMode = null, model = null, openedFiles = null, agentPrompt = null, streaming = null, reasoningEffort = null, maxTurns = null, denyAllTools = false) {
   // Guard: empty prompt creates a { type: "text", text: "" } content block
   // that the Anthropic API rejects with "text content blocks must be non-empty".
   const safeMessage = (message && typeof message === 'string' && message.trim() !== '') ? message : '[Empty message]';
@@ -436,7 +456,7 @@ export async function sendMessage(message, resumeSessionId = null, cwd = null, p
 
     const preToolUseHook = createPreToolUseHook(effectivePermissionMode, workingDirectory);
     const effectiveMaxTurns = (maxTurns && Number.isInteger(maxTurns) && maxTurns > 0) ? maxTurns : undefined;
-    const options = buildQueryOptions({ workingDirectory, permissionMode: effectivePermissionMode, sdkModelName, maxThinkingTokens, effort, streamingEnabled, systemPromptAppend, preToolUseHook, sdkStderrLines, maxTurns: effectiveMaxTurns });
+    const options = buildQueryOptions({ workingDirectory, permissionMode: effectivePermissionMode, sdkModelName, maxThinkingTokens, effort, streamingEnabled, systemPromptAppend, preToolUseHook, sdkStderrLines, maxTurns: effectiveMaxTurns, denyAllTools });
 
     await prepareSessionResume(options, resumeSessionId, workingDirectory);
 
@@ -447,6 +467,7 @@ export async function sendMessage(message, resumeSessionId = null, cwd = null, p
       streamingEnabled,
       resumeSessionId,
       workingDirectory,
+      userMessage: safeMessage,
       logPrefix: '',
       outerStreamState
     });
@@ -522,6 +543,7 @@ export async function sendMessageWithAttachments(message, resumeSessionId = null
       streamingEnabled,
       resumeSessionId,
       workingDirectory,
+      userMessage: message,
       logPrefix: '(withAttachments)',
       outerStreamState
     });

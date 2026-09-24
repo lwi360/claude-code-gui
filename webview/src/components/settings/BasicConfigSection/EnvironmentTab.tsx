@@ -24,6 +24,8 @@ export interface EnvironmentTabProps {
   ) => void;
   onSaveProjectDatabaseBinding?: () => void;
   savingProjectDatabaseBinding?: boolean;
+  onTestProjectDatabaseConnection?: () => void;
+  testingProjectDatabaseConnection?: boolean;
   nacosRegistryConfig?: NacosRegistryConfig;
   onNacosRegistryConfigChange?: <K extends keyof NacosRegistryConfig>(
     key: K,
@@ -50,6 +52,8 @@ const EnvironmentTab = ({
   onProjectDatabaseBindingChange = () => {},
   onSaveProjectDatabaseBinding = () => {},
   savingProjectDatabaseBinding = false,
+  onTestProjectDatabaseConnection = () => {},
+  testingProjectDatabaseConnection = false,
   nacosRegistryConfig = { enabled: false, serverAddr: '', namespace: 'public', username: '', password: '' },
   onNacosRegistryConfigChange = () => {},
   onSaveNacosRegistryConfig = () => {},
@@ -353,6 +357,16 @@ const EnvironmentTab = ({
         </label>
 
         <div className={styles.databaseActions}>
+          <button
+            className={styles.saveBtn}
+            onClick={onTestProjectDatabaseConnection}
+            disabled={testingProjectDatabaseConnection}
+          >
+            {testingProjectDatabaseConnection && (
+              <span className="codicon codicon-loading codicon-modifier-spin" />
+            )}
+            {t(`${dbBindingBaseKey}.testConnection`)}
+          </button>
           <button
             className={styles.saveBtn}
             onClick={onSaveProjectDatabaseBinding}

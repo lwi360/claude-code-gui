@@ -165,6 +165,65 @@
         "disabled": "折りたたみ",
         "hint": "有効にすると、チャット内のコード差分がデフォルトで展開表示されます。無効の場合、差分は折りたたまれた状態で表示されます。"
       },
+      "newSessionConfirm": {
+        "label": "Confirm New Session",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "When enabled, creating a new session asks for confirmation if the current session already has messages. An in-progress reply still requires an interrupt confirmation."
+      },
+      "aiTitleGeneration": {
+        "label": "AI Session Title",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "After the first reply, a fast model writes a short session title and shows it in the chat header and history list."
+      },
+      "detailedOutput": {
+        "label": "Detailed Output",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "When enabled, thinking blocks stay expanded."
+      },
+      "permissionDialogTimeout": {
+        "label": "Permission Dialog Timeout",
+        "hint": "How long permission, plan, and question dialogs wait. Range 30-3600 seconds, default 300.",
+        "unit": "seconds"
+      },
+      "commitGeneration": {
+        "label": "AI Commit Message",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "When disabled, the version-control action that generates a commit message with AI is hidden."
+      },
+      "statusBarWidget": {
+        "label": "Status Bar Widget",
+        "enabled": "Shown",
+        "disabled": "Hidden",
+        "hint": "Shows or hides the CC AI Toolkit status in the IDE status bar."
+      },
+      "taskCompletionNotification": {
+        "label": "Task Completion Notification",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "Shows an IDE notification when a task finishes. The completion sound is still controlled by the sound setting above."
+      },
+      "askUserQuestionNotification": {
+        "label": "Question Notification",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "Shows an IDE notification when Claude needs an answer."
+      },
+      "askUserQuestionSound": {
+        "label": "Question Sound",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "Plays the selected notification sound when Claude asks a question."
+      },
+      "systemNotificationOnlyWhenUnfocused": {
+        "label": "Notify Only When IDE Is Unfocused",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "When enabled, task-completion and question notifications appear only while the IDE window is not focused."
+      },
       "sendShortcut": {
         "label": "送信ショートカット",
         "enter": "Enterで送信",

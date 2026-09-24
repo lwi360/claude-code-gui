@@ -5,6 +5,7 @@
 
 import { isCustomBaseUrl, loadClaudeSettings, setupApiKey } from '../../config/api-config.js';
 import { selectWorkingDirectory } from '../../utils/path-utils.js';
+import { generateSessionTitle } from '../session-title-service.js';
 import {
   mapModelIdToSdkName,
   resolveModelFromSettings,
@@ -68,6 +69,17 @@ function resolveStreamingEnabled(params, settings) {
   return params.streaming != null
     ? !!params.streaming
     : (settings?.streamingEnabled ?? false);
+}
+
+function extractUserMessageText(userMessage) {
+  if (!userMessage?.message?.content) return null;
+  const content = userMessage.message.content;
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) {
+    const textBlock = content.find((block) => block.type === 'text');
+    return textBlock?.text || null;
+  }
+  return null;
 }
 
 function buildSystemPromptAppend(params) {
@@ -323,6 +335,26 @@ async function executeTurn(runtime, requestContext, turnMeta) {
       success: true,
       sessionId: finalSessionId
     }));
+
+    // Fire-and-forget: generate an AI title for a new session, not a resume.
+    // titleGenerationAttempted blocks a second turn from starting another
+    // Haiku call before the first one finishes. Transient failures clear the
+    // flag so a later turn can retry.
+    if (!requestContext.requestedSessionId && finalSessionId && !runtime.titleGenerationAttempted) {
+      runtime.titleGenerationAttempted = true;
+      const userMessageText = extractUserMessageText(requestContext.userMessage);
+      if (userMessageText) {
+        generateSessionTitle(userMessageText, finalSessionId, requestContext.options.cwd)
+          .then((completed) => {
+            if (!completed) {
+              runtime.titleGenerationAttempted = false;
+            }
+          })
+          .catch(() => {
+            runtime.titleGenerationAttempted = false;
+          });
+      }
+    }
   } finally {
     endRuntimeTurn(runtime);
     // Only clear if this runtime still owns the pointer (not cleared by abort)

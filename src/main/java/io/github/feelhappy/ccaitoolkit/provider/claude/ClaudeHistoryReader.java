@@ -92,6 +92,7 @@ public class ClaudeHistoryReader {
         public String parentUuid;
         public String timestamp;
         public String type;
+        public String aiTitle;
         public Message message;
         public Boolean isMeta;
         public Boolean isSidechain;

@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import styles from './style.module.less';
 import { useTranslation } from 'react-i18next';
+import ToggleSettingSection from './ToggleSettingSection';
+import PermissionDialogTimeoutSetting from './PermissionDialogTimeoutSetting';
 
 /** Upward-opening custom select for sound selection (avoids JCEF clipping) */
 const SoundSelectUpward = ({
@@ -92,6 +94,26 @@ export interface BehaviorTabProps {
   onSaveCustomSoundPath?: () => void;
   onTestSound?: () => void;
   onBrowseSound?: () => void;
+  newSessionConfirmEnabled?: boolean;
+  onNewSessionConfirmEnabledChange?: (enabled: boolean) => void;
+  detailedOutputEnabled?: boolean;
+  onDetailedOutputEnabledChange?: (enabled: boolean) => void;
+  permissionDialogTimeoutSeconds?: number;
+  onPermissionDialogTimeoutChange?: (seconds: number) => void;
+  commitGenerationEnabled?: boolean;
+  onCommitGenerationEnabledChange?: (enabled: boolean) => void;
+  statusBarWidgetEnabled?: boolean;
+  onStatusBarWidgetEnabledChange?: (enabled: boolean) => void;
+  taskCompletionNotificationEnabled?: boolean;
+  onTaskCompletionNotificationEnabledChange?: (enabled: boolean) => void;
+  askUserQuestionNotificationEnabled?: boolean;
+  onAskUserQuestionNotificationEnabledChange?: (enabled: boolean) => void;
+  askUserQuestionSoundNotificationEnabled?: boolean;
+  onAskUserQuestionSoundNotificationEnabledChange?: (enabled: boolean) => void;
+  systemNotificationOnlyWhenUnfocused?: boolean;
+  onSystemNotificationOnlyWhenUnfocusedChange?: (enabled: boolean) => void;
+  aiTitleGenerationEnabled?: boolean;
+  onAiTitleGenerationEnabledChange?: (enabled: boolean) => void;
 }
 
 const BehaviorTab = ({
@@ -114,6 +136,26 @@ const BehaviorTab = ({
   onSaveCustomSoundPath = () => {},
   onTestSound = () => {},
   onBrowseSound = () => {},
+  newSessionConfirmEnabled = true,
+  onNewSessionConfirmEnabledChange = () => {},
+  detailedOutputEnabled = false,
+  onDetailedOutputEnabledChange = () => {},
+  permissionDialogTimeoutSeconds = 300,
+  onPermissionDialogTimeoutChange = () => {},
+  commitGenerationEnabled = true,
+  onCommitGenerationEnabledChange = () => {},
+  statusBarWidgetEnabled = true,
+  onStatusBarWidgetEnabledChange = () => {},
+  taskCompletionNotificationEnabled = false,
+  onTaskCompletionNotificationEnabledChange = () => {},
+  askUserQuestionNotificationEnabled = false,
+  onAskUserQuestionNotificationEnabledChange = () => {},
+  askUserQuestionSoundNotificationEnabled = false,
+  onAskUserQuestionSoundNotificationEnabledChange = () => {},
+  systemNotificationOnlyWhenUnfocused = false,
+  onSystemNotificationOnlyWhenUnfocusedChange = () => {},
+  aiTitleGenerationEnabled = true,
+  onAiTitleGenerationEnabledChange = () => {},
 }: BehaviorTabProps) => {
   const { t } = useTranslation();
 
@@ -241,6 +283,61 @@ const BehaviorTab = ({
         </small>
       </div>
 
+      <ToggleSettingSection
+        icon="codicon-sparkle"
+        label={t('settings.basic.aiTitleGeneration.label')}
+        checked={aiTitleGenerationEnabled}
+        onChange={onAiTitleGenerationEnabledChange}
+        enabledLabel={t('settings.basic.aiTitleGeneration.enabled')}
+        disabledLabel={t('settings.basic.aiTitleGeneration.disabled')}
+        hint={t('settings.basic.aiTitleGeneration.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-comment-discussion"
+        label={t('settings.basic.newSessionConfirm.label')}
+        checked={newSessionConfirmEnabled}
+        onChange={onNewSessionConfirmEnabledChange}
+        enabledLabel={t('settings.basic.newSessionConfirm.enabled')}
+        disabledLabel={t('settings.basic.newSessionConfirm.disabled')}
+        hint={t('settings.basic.newSessionConfirm.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-list-tree"
+        label={t('settings.basic.detailedOutput.label')}
+        checked={detailedOutputEnabled}
+        onChange={onDetailedOutputEnabledChange}
+        enabledLabel={t('settings.basic.detailedOutput.enabled')}
+        disabledLabel={t('settings.basic.detailedOutput.disabled')}
+        hint={t('settings.basic.detailedOutput.hint')}
+      />
+
+      <PermissionDialogTimeoutSetting
+        seconds={permissionDialogTimeoutSeconds}
+        onCommit={onPermissionDialogTimeoutChange}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-git-commit"
+        label={t('settings.basic.commitGeneration.label')}
+        checked={commitGenerationEnabled}
+        onChange={onCommitGenerationEnabledChange}
+        enabledLabel={t('settings.basic.commitGeneration.enabled')}
+        disabledLabel={t('settings.basic.commitGeneration.disabled')}
+        hint={t('settings.basic.commitGeneration.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-layout-statusbar"
+        label={t('settings.basic.statusBarWidget.label')}
+        checked={statusBarWidgetEnabled}
+        onChange={onStatusBarWidgetEnabledChange}
+        enabledLabel={t('settings.basic.statusBarWidget.enabled')}
+        disabledLabel={t('settings.basic.statusBarWidget.disabled')}
+        hint={t('settings.basic.statusBarWidget.hint')}
+      />
+
       {/* Sound notification */}
       <div className={styles.streamingSection}>
         <div className={styles.fieldHeader}>
@@ -342,6 +439,46 @@ const BehaviorTab = ({
           </div>
         )}
       </div>
+
+      <ToggleSettingSection
+        icon="codicon-bell"
+        label={t('settings.basic.taskCompletionNotification.label')}
+        checked={taskCompletionNotificationEnabled}
+        onChange={onTaskCompletionNotificationEnabledChange}
+        enabledLabel={t('settings.basic.taskCompletionNotification.enabled')}
+        disabledLabel={t('settings.basic.taskCompletionNotification.disabled')}
+        hint={t('settings.basic.taskCompletionNotification.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-question"
+        label={t('settings.basic.askUserQuestionNotification.label')}
+        checked={askUserQuestionNotificationEnabled}
+        onChange={onAskUserQuestionNotificationEnabledChange}
+        enabledLabel={t('settings.basic.askUserQuestionNotification.enabled')}
+        disabledLabel={t('settings.basic.askUserQuestionNotification.disabled')}
+        hint={t('settings.basic.askUserQuestionNotification.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-unmute"
+        label={t('settings.basic.askUserQuestionSound.label')}
+        checked={askUserQuestionSoundNotificationEnabled}
+        onChange={onAskUserQuestionSoundNotificationEnabledChange}
+        enabledLabel={t('settings.basic.askUserQuestionSound.enabled')}
+        disabledLabel={t('settings.basic.askUserQuestionSound.disabled')}
+        hint={t('settings.basic.askUserQuestionSound.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-eye-closed"
+        label={t('settings.basic.systemNotificationOnlyWhenUnfocused.label')}
+        checked={systemNotificationOnlyWhenUnfocused}
+        onChange={onSystemNotificationOnlyWhenUnfocusedChange}
+        enabledLabel={t('settings.basic.systemNotificationOnlyWhenUnfocused.enabled')}
+        disabledLabel={t('settings.basic.systemNotificationOnlyWhenUnfocused.disabled')}
+        hint={t('settings.basic.systemNotificationOnlyWhenUnfocused.hint')}
+      />
     </div>
   );
 };

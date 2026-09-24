@@ -60,8 +60,26 @@ export function registerSessionAndSdkCallbacks(
     chatInputRef,
     customSessionTitleRef,
     currentSessionIdRef,
+    setCustomSessionTitle,
+    setHistoryData,
     updateHistoryTitle,
   } = options;
+
+  window.updateSessionTitle = (sessionId: string, title: string) => {
+    if (!sessionId || !title) return;
+    if (currentSessionIdRef.current === sessionId) {
+      setCustomSessionTitle(title);
+    }
+    setHistoryData((previous) => {
+      if (!previous?.sessions) return previous;
+      return {
+        ...previous,
+        sessions: previous.sessions.map((session) => (
+          session.sessionId === sessionId ? { ...session, title } : session
+        )),
+      };
+    });
+  };
 
   window.setSessionId = (sessionId: string) => {
     const oldId = currentSessionIdRef.current;

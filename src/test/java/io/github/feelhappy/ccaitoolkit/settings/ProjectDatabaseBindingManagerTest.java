@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 public class ProjectDatabaseBindingManagerTest {
@@ -96,5 +97,19 @@ public class ProjectDatabaseBindingManagerTest {
 
         assertTrue(classpathArg.contains("bundled-db-mcp-server"));
         assertTrue(classpathArg.endsWith("lib\\*") || classpathArg.endsWith("lib/*"));
+    }
+
+    @Test
+    public void testConnectionRequiresJdbcUrl() {
+        JsonObject payload = new JsonObject();
+        payload.addProperty("jdbcUrl", " ");
+        payload.addProperty("username", "SYSDBA");
+        payload.addProperty("password", "secret");
+
+        ProjectDatabaseBindingManager manager = new ProjectDatabaseBindingManager(null, null, null, null, null);
+        JsonObject result = manager.testConnection(payload);
+
+        assertFalse(result.get("success").getAsBoolean());
+        assertEquals("请填写 JDBC URL", result.get("message").getAsString());
     }
 }

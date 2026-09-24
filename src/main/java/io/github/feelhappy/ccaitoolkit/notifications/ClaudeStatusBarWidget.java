@@ -261,7 +261,31 @@ public class ClaudeStatusBarWidget implements CustomStatusBarWidget, StatusBarWi
 
         @Override
         public boolean isAvailable(@NotNull Project project) {
-            return project != null;
+            if (project == null) {
+                return false;
+            }
+            try {
+                return new io.github.feelhappy.ccaitoolkit.settings.CodemossSettingsService().getStatusBarWidgetEnabled();
+            } catch (Exception e) {
+                return true;
+            }
+        }
+
+        public static void applyAvailability(@NotNull Project project, boolean enabled) {
+            com.intellij.openapi.application.ApplicationManager.getApplication().invokeLater(() -> {
+                com.intellij.openapi.wm.StatusBar statusBar =
+                        com.intellij.openapi.wm.WindowManager.getInstance().getStatusBar(project);
+                if (statusBar == null) {
+                    return;
+                }
+                if (enabled) {
+                    if (statusBar.getWidget(PluginIds.STATUS_BAR_WIDGET_ID) == null) {
+                        statusBar.addWidget(new ClaudeStatusBarWidget(project), project);
+                    }
+                } else {
+                    statusBar.removeWidget(PluginIds.STATUS_BAR_WIDGET_ID);
+                }
+            });
         }
 
         @Override

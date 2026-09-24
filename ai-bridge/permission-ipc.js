@@ -5,6 +5,7 @@
 import { writeFileSync, readFileSync, existsSync, unlinkSync, readdirSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { getCodemossDir } from './utils/path-utils.js';
 
 // ========== Debug logging ==========
 export function debugLog(tag, message, data = null) {
@@ -20,8 +21,28 @@ export const PERMISSION_DIR = process.env.CLAUDE_PERMISSION_DIR
 
 export const SESSION_ID = process.env.CLAUDE_SESSION_ID || 'default';
 
-// Permission request timeout (5 minutes), kept in sync with Java-side PermissionHandler.PERMISSION_TIMEOUT_SECONDS
+// Default permission request timeout (5 minutes). The live value is read from ~/.codemoss/config.json.
 export const PERMISSION_TIMEOUT_MS = 300000;
+const MIN_PERMISSION_TIMEOUT_MS = 30000;
+const MAX_PERMISSION_TIMEOUT_MS = 3600000;
+
+function readPermissionTimeoutMs() {
+  try {
+    const configPath = join(getCodemossDir(), 'config.json');
+    if (!existsSync(configPath)) {
+      return PERMISSION_TIMEOUT_MS;
+    }
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    const seconds = Number(config.permissionDialogTimeoutSeconds);
+    if (!Number.isFinite(seconds)) {
+      return PERMISSION_TIMEOUT_MS;
+    }
+    return Math.max(MIN_PERMISSION_TIMEOUT_MS, Math.min(MAX_PERMISSION_TIMEOUT_MS, Math.round(seconds) * 1000));
+  } catch (e) {
+    debugLog('TIMEOUT', `Failed to read permission timeout, using default: ${e.message}`);
+    return PERMISSION_TIMEOUT_MS;
+  }
+}
 
 debugLog('INIT', `Permission dir: ${PERMISSION_DIR}`);
 debugLog('INIT', `Session ID: ${SESSION_ID}`);
@@ -77,7 +98,7 @@ export async function requestAskUserQuestionAnswers(input) {
       return null;
     }
 
-    const timeout = PERMISSION_TIMEOUT_MS;
+    const timeout = readPermissionTimeoutMs();
     let pollCount = 0;
     const pollInterval = 100;
 
@@ -174,7 +195,7 @@ export async function requestPlanApproval(input) {
       return { approved: false, message: 'Failed to write plan approval request' };
     }
 
-    const timeout = PERMISSION_TIMEOUT_MS;
+    const timeout = readPermissionTimeoutMs();
     let pollCount = 0;
     const pollInterval = 100;
 
@@ -279,7 +300,7 @@ export async function requestPermissionFromJava(toolName, input) {
       return false;
     }
 
-    const timeout = PERMISSION_TIMEOUT_MS;
+    const timeout = readPermissionTimeoutMs();
     let pollCount = 0;
     const pollInterval = 100;
 

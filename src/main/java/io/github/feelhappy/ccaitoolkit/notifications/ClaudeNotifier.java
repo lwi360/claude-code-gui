@@ -1,7 +1,11 @@
 package io.github.feelhappy.ccaitoolkit.notifications;
 
+import io.github.feelhappy.ccaitoolkit.PluginIds;
 import io.github.feelhappy.ccaitoolkit.i18n.ClaudeCodeGuiBundle;
+import io.github.feelhappy.ccaitoolkit.settings.CodemossSettingsService;
 import io.github.feelhappy.ccaitoolkit.util.SoundNotificationService;
+import com.intellij.notification.NotificationGroupManager;
+import com.intellij.notification.NotificationType;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +32,18 @@ public class ClaudeNotifier {
 
         // Play the task completion notification sound
         SoundNotificationService.getInstance().playTaskCompleteSound();
+    }
+
+    public static void showTaskCompleted(@NotNull Project project, String message) {
+        showSuccess(project, message);
+        showSystemNotification(project, ClaudeCodeGuiBundle.message("notifier.taskCompleted"),
+                CodemossSettingsService::getTaskCompletionNotificationEnabled);
+    }
+
+    public static void showAskUserQuestion(@NotNull Project project) {
+        showSystemNotification(project, ClaudeCodeGuiBundle.message("notifier.askUserQuestion"),
+                CodemossSettingsService::getAskUserQuestionNotificationEnabled);
+        SoundNotificationService.getInstance().playAskUserQuestionSound();
     }
 
     public static void showError(@NotNull Project project, String message) {
@@ -96,6 +112,36 @@ public class ClaudeNotifier {
                 widget.updateStatus(status, details);
             }
         });
+    }
+
+    private static void showSystemNotification(
+            @NotNull Project project,
+            String message,
+            NotificationPreference enabled) {
+        ApplicationManager.getApplication().executeOnPooledThread(() -> {
+            try {
+                CodemossSettingsService settings = new CodemossSettingsService();
+                if (!enabled.isEnabled(settings)) {
+                    return;
+                }
+                if (settings.getSystemNotificationOnlyWhenUnfocused()
+                        && ApplicationManager.getApplication().isActive()) {
+                    return;
+                }
+                ApplicationManager.getApplication().invokeLater(() ->
+                        NotificationGroupManager.getInstance()
+                                .getNotificationGroup(PluginIds.NOTIFICATION_GROUP_ID)
+                                .createNotification(message, NotificationType.INFORMATION)
+                                .notify(project));
+            } catch (Exception ignored) {
+                // A missing notification preference should not interrupt the chat flow.
+            }
+        });
+    }
+
+    @FunctionalInterface
+    private interface NotificationPreference {
+        boolean isEnabled(CodemossSettingsService settings) throws Exception;
     }
 
     private static void show(@NotNull Project project, String text, String tooltip, long duration) {

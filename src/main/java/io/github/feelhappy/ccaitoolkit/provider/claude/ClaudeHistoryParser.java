@@ -88,6 +88,12 @@ class ClaudeHistoryParser {
      * Generate a summary from conversation messages.
      */
     String generateSummary(List<ClaudeHistoryReader.ConversationMessage> messages) {
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            ClaudeHistoryReader.ConversationMessage msg = messages.get(i);
+            if ("ai-title".equals(msg.type) && msg.aiTitle != null && !msg.aiTitle.isBlank()) {
+                return TextSanitizer.sanitizeAndTruncateSingleLine(msg.aiTitle, 80);
+            }
+        }
         for (ClaudeHistoryReader.ConversationMessage msg : messages) {
             if ("user".equals(msg.type) &&
                         (msg.isMeta == null || !msg.isMeta) &&

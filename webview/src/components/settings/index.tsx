@@ -125,6 +125,8 @@ const SettingsView = ({
     setProjectDatabaseBinding,
     savingProjectDatabaseBinding,
     setSavingProjectDatabaseBinding,
+    testingProjectDatabaseConnection,
+    setTestingProjectDatabaseConnection,
     soundNotificationEnabled,
     setSoundNotificationEnabled,
     soundOnlyWhenUnfocused,
@@ -150,9 +152,38 @@ const SettingsView = ({
     handleSaveCustomSoundPath,
     handleTestSound,
     handleBrowseSound,
+    newSessionConfirmEnabled,
+    detailedOutputEnabled,
+    permissionDialogTimeoutSeconds,
+    setPermissionDialogTimeoutSeconds,
+    commitGenerationEnabled,
+    setCommitGenerationEnabled,
+    statusBarWidgetEnabled,
+    setStatusBarWidgetEnabled,
+    taskCompletionNotificationEnabled,
+    setTaskCompletionNotificationEnabled,
+    askUserQuestionNotificationEnabled,
+    setAskUserQuestionNotificationEnabled,
+    askUserQuestionSoundNotificationEnabled,
+    setAskUserQuestionSoundNotificationEnabled,
+    systemNotificationOnlyWhenUnfocused,
+    setSystemNotificationOnlyWhenUnfocused,
+    handleNewSessionConfirmEnabledChange,
+    handleDetailedOutputEnabledChange,
+    handlePermissionDialogTimeoutChange,
+    handleCommitGenerationEnabledChange,
+    handleStatusBarWidgetEnabledChange,
+    handleTaskCompletionNotificationEnabledChange,
+    handleAskUserQuestionNotificationEnabledChange,
+    handleAskUserQuestionSoundNotificationEnabledChange,
+    handleSystemNotificationOnlyWhenUnfocusedChange,
+    aiTitleGenerationEnabled,
+    setAiTitleGenerationEnabled,
+    handleAiTitleGenerationEnabledChange,
     handleSaveCommitPrompt,
     handleProjectDatabaseBindingChange,
     handleSaveProjectDatabaseBinding,
+    handleTestProjectDatabaseConnection,
     nacosRegistryConfig,
     setNacosRegistryConfig,
     savingNacosRegistryConfig,
@@ -296,6 +327,15 @@ const SettingsView = ({
     setNacosRegistryConfig,
     setSavingNacosRegistryConfig,
     setTestingNacosConnection,
+    setTestingProjectDatabaseConnection,
+    setPermissionDialogTimeoutSeconds,
+    setCommitGenerationEnabled,
+    setStatusBarWidgetEnabled,
+    setTaskCompletionNotificationEnabled,
+    setAskUserQuestionNotificationEnabled,
+    setAskUserQuestionSoundNotificationEnabled,
+    setSystemNotificationOnlyWhenUnfocused,
+    setAiTitleGenerationEnabled,
   });
 
   // Save provider (wrapper function with validation logic)
@@ -421,6 +461,8 @@ const SettingsView = ({
               onProjectDatabaseBindingChange={handleProjectDatabaseBindingChange}
               onSaveProjectDatabaseBinding={handleSaveProjectDatabaseBinding}
               savingProjectDatabaseBinding={savingProjectDatabaseBinding}
+              onTestProjectDatabaseConnection={handleTestProjectDatabaseConnection}
+              testingProjectDatabaseConnection={testingProjectDatabaseConnection}
               editorFontConfig={editorFontConfig}
               streamingEnabled={streamingEnabled}
               onStreamingEnabledChange={handleStreamingEnabledChange}
@@ -445,6 +487,26 @@ const SettingsView = ({
               onSaveCustomSoundPath={handleSaveCustomSoundPath}
               onTestSound={handleTestSound}
               onBrowseSound={handleBrowseSound}
+              newSessionConfirmEnabled={newSessionConfirmEnabled}
+              onNewSessionConfirmEnabledChange={handleNewSessionConfirmEnabledChange}
+              detailedOutputEnabled={detailedOutputEnabled}
+              onDetailedOutputEnabledChange={handleDetailedOutputEnabledChange}
+              permissionDialogTimeoutSeconds={permissionDialogTimeoutSeconds}
+              onPermissionDialogTimeoutChange={handlePermissionDialogTimeoutChange}
+              commitGenerationEnabled={commitGenerationEnabled}
+              onCommitGenerationEnabledChange={handleCommitGenerationEnabledChange}
+              statusBarWidgetEnabled={statusBarWidgetEnabled}
+              onStatusBarWidgetEnabledChange={handleStatusBarWidgetEnabledChange}
+              taskCompletionNotificationEnabled={taskCompletionNotificationEnabled}
+              onTaskCompletionNotificationEnabledChange={handleTaskCompletionNotificationEnabledChange}
+              askUserQuestionNotificationEnabled={askUserQuestionNotificationEnabled}
+              onAskUserQuestionNotificationEnabledChange={handleAskUserQuestionNotificationEnabledChange}
+              askUserQuestionSoundNotificationEnabled={askUserQuestionSoundNotificationEnabled}
+              onAskUserQuestionSoundNotificationEnabledChange={handleAskUserQuestionSoundNotificationEnabledChange}
+              systemNotificationOnlyWhenUnfocused={systemNotificationOnlyWhenUnfocused}
+              onSystemNotificationOnlyWhenUnfocusedChange={handleSystemNotificationOnlyWhenUnfocusedChange}
+              aiTitleGenerationEnabled={aiTitleGenerationEnabled}
+              onAiTitleGenerationEnabledChange={handleAiTitleGenerationEnabledChange}
               nacosRegistryConfig={nacosRegistryConfig}
               onNacosRegistryConfigChange={handleNacosRegistryConfigChange}
               onSaveNacosRegistryConfig={handleSaveNacosRegistryConfig}

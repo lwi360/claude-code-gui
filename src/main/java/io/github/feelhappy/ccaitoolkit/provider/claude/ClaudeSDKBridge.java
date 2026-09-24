@@ -77,6 +77,14 @@ public class ClaudeSDKBridge extends BaseSDKBridge {
         daemonCoordinator.shutdownDaemon();
     }
 
+    public void addDaemonEventListener(io.github.feelhappy.ccaitoolkit.provider.common.DaemonBridge.DaemonEventListener listener) {
+        daemonCoordinator.addDaemonEventListener(listener);
+    }
+
+    public void removeDaemonEventListener(io.github.feelhappy.ccaitoolkit.provider.common.DaemonBridge.DaemonEventListener listener) {
+        daemonCoordinator.removeDaemonEventListener(listener);
+    }
+
     public void prewarmDaemonAsync(String cwd) {
         prewarmDaemonAsync(cwd, null);
     }
@@ -416,6 +424,7 @@ public class ClaudeSDKBridge extends BaseSDKBridge {
                 disableThinking,
                 reasoningEffort,
                 maxTurns,
+                denyAllTools,
                 callback
         );
     }

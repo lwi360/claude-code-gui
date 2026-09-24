@@ -502,6 +502,98 @@ public class CodemossSettingsService {
         LOG.info("[CodemossSettings] Set auto open file enabled to " + enabled + " for project: " + projectPath);
     }
 
+    public static final int DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS = 300;
+    public static final int MIN_PERMISSION_DIALOG_TIMEOUT_SECONDS = 30;
+    public static final int MAX_PERMISSION_DIALOG_TIMEOUT_SECONDS = 3600;
+
+    public int getPermissionDialogTimeoutSeconds() throws IOException {
+        JsonObject config = readConfig();
+        if (config.has("permissionDialogTimeoutSeconds") && !config.get("permissionDialogTimeoutSeconds").isJsonNull()) {
+            return clampPermissionDialogTimeout(config.get("permissionDialogTimeoutSeconds").getAsInt());
+        }
+        return DEFAULT_PERMISSION_DIALOG_TIMEOUT_SECONDS;
+    }
+
+    public void setPermissionDialogTimeoutSeconds(int seconds) throws IOException {
+        JsonObject config = readConfig();
+        config.addProperty("permissionDialogTimeoutSeconds", clampPermissionDialogTimeout(seconds));
+        writeConfig(config);
+    }
+
+    public boolean getCommitGenerationEnabled() throws IOException {
+        return readGlobalBoolean("commitGenerationEnabled", true);
+    }
+
+    public void setCommitGenerationEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("commitGenerationEnabled", enabled);
+    }
+
+    public boolean getStatusBarWidgetEnabled() throws IOException {
+        return readGlobalBoolean("statusBarWidgetEnabled", true);
+    }
+
+    public void setStatusBarWidgetEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("statusBarWidgetEnabled", enabled);
+    }
+
+    public boolean getTaskCompletionNotificationEnabled() throws IOException {
+        return readGlobalBoolean("taskCompletionNotificationEnabled", false);
+    }
+
+    public void setTaskCompletionNotificationEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("taskCompletionNotificationEnabled", enabled);
+    }
+
+    public boolean getAskUserQuestionNotificationEnabled() throws IOException {
+        return readGlobalBoolean("askUserQuestionNotificationEnabled", false);
+    }
+
+    public void setAskUserQuestionNotificationEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("askUserQuestionNotificationEnabled", enabled);
+    }
+
+    public boolean getAskUserQuestionSoundNotificationEnabled() throws IOException {
+        return readGlobalBoolean("askUserQuestionSoundNotificationEnabled", false);
+    }
+
+    public void setAskUserQuestionSoundNotificationEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("askUserQuestionSoundNotificationEnabled", enabled);
+    }
+
+    public boolean getSystemNotificationOnlyWhenUnfocused() throws IOException {
+        return readGlobalBoolean("systemNotificationOnlyWhenUnfocused", false);
+    }
+
+    public void setSystemNotificationOnlyWhenUnfocused(boolean enabled) throws IOException {
+        writeGlobalBoolean("systemNotificationOnlyWhenUnfocused", enabled);
+    }
+
+    public boolean getAiTitleGenerationEnabled() throws IOException {
+        return readGlobalBoolean("aiTitleGenerationEnabled", true);
+    }
+
+    public void setAiTitleGenerationEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("aiTitleGenerationEnabled", enabled);
+    }
+
+    private boolean readGlobalBoolean(String key, boolean defaultValue) throws IOException {
+        JsonObject config = readConfig();
+        if (config.has(key) && !config.get(key).isJsonNull()) {
+            return config.get(key).getAsBoolean();
+        }
+        return defaultValue;
+    }
+
+    private void writeGlobalBoolean(String key, boolean enabled) throws IOException {
+        JsonObject config = readConfig();
+        config.addProperty(key, enabled);
+        writeConfig(config);
+    }
+
+    private static int clampPermissionDialogTimeout(int seconds) {
+        return Math.max(MIN_PERMISSION_DIALOG_TIMEOUT_SECONDS, Math.min(MAX_PERMISSION_DIALOG_TIMEOUT_SECONDS, seconds));
+    }
+
     // ==================== Codex Sandbox Mode Config Management ====================
 
     /**
@@ -580,6 +672,10 @@ public class CodemossSettingsService {
 
     public JsonObject upsertProjectDatabaseBinding(String projectPath, JsonObject binding) throws IOException {
         return projectDatabaseBindingManager.upsertProjectDatabaseBinding(projectPath, binding);
+    }
+
+    public JsonObject testProjectDatabaseConnection(JsonObject binding) {
+        return projectDatabaseBindingManager.testConnection(binding);
     }
 
     // ==================== Provider Management ====================

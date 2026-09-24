@@ -1,12 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCountdown } from '../utils/helpers';
+import { getPermissionDialogTimeoutSeconds } from '../utils/permissionDialogTimeout';
 import MarkdownBlock from './MarkdownBlock';
 import { useDialogResize } from '../hooks/useDialogResize';
 import './PlanApprovalDialog.css';
 
-// Timeout configuration (kept in sync with backend PermissionHandler.java)
-const TIMEOUT_SECONDS = 300; // 5 minutes
 const WARNING_THRESHOLD_SECONDS = 30; // Show warning when 30 seconds remain
 
 export interface AllowedPrompt {
@@ -47,7 +46,7 @@ const PlanApprovalDialog = ({
   // Controls whether the dialog is collapsed (compact mode)
   const [isCollapsed, setIsCollapsed] = useState(false);
   // Remaining countdown seconds
-  const [remainingSeconds, setRemainingSeconds] = useState(TIMEOUT_SECONDS);
+  const [remainingSeconds, setRemainingSeconds] = useState(getPermissionDialogTimeoutSeconds);
   // Whether to show timeout warning
   const isTimeWarning = remainingSeconds <= WARNING_THRESHOLD_SECONDS && remainingSeconds > 0;
   // Whether the dialog has timed out
@@ -76,7 +75,7 @@ const PlanApprovalDialog = ({
       setSelectedMode('default');
       setIsCollapsed(false);
       // Reset countdown
-      setRemainingSeconds(TIMEOUT_SECONDS);
+      setRemainingSeconds(getPermissionDialogTimeoutSeconds());
       setDialogHeight(null);
     }
   }, [isOpen, request?.requestId]);

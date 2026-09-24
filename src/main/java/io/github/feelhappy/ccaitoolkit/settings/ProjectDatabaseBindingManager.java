@@ -9,6 +9,7 @@ import com.intellij.openapi.diagnostic.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
@@ -18,6 +19,7 @@ import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 /**
@@ -35,6 +37,7 @@ public class ProjectDatabaseBindingManager {
     private static final int QUERY_TIMEOUT_SEC = 30;
     private static final int CODEX_STARTUP_TIMEOUT_SEC = 30;
     private static final int CODEX_TOOL_TIMEOUT_SEC = 120;
+    private static final int PING_TIMEOUT_SEC = 20;
     private static final Set<String> SUPPORTED_DIALECTS = Set.of("postgresql", "mysql", "oracle", "dameng");
 
     private final ConfigPathManager pathManager;
@@ -102,6 +105,36 @@ public class ProjectDatabaseBindingManager {
 
         LOG.info("[ProjectDatabaseBindingManager] Saved database binding for project: " + projectPath);
         return buildResponse(projectPath, binding);
+    }
+
+    public JsonObject testConnection(JsonObject payload) {
+        Path configPath = null;
+        try {
+            ProjectDatabaseBinding binding = ProjectDatabaseBinding.fromJson(payload, ProjectDatabaseBinding.defaults());
+            String validationMessage = connectionInputMessage(binding);
+            if (validationMessage != null) {
+                return connectionFailure(validationMessage);
+            }
+            validate(binding);
+
+            configPath = Files.createTempFile("cc-ai-db-ping-", ".json");
+            writeStringAtomically(configPath, GSON.toJson(buildServerConfig(binding)));
+            return runPingProcess(binding, configPath);
+        } catch (Exception e) {
+            LOG.warn("[ProjectDatabaseBindingManager] Database connection test failed: " + e.getMessage());
+            String message = e.getMessage() == null || e.getMessage().isBlank()
+                    ? e.getClass().getSimpleName()
+                    : e.getMessage();
+            return connectionFailure(message);
+        } finally {
+            if (configPath != null) {
+                try {
+                    Files.deleteIfExists(configPath);
+                } catch (IOException ignored) {
+                    LOG.warn("[ProjectDatabaseBindingManager] Failed to delete temp database ping config");
+                }
+            }
+        }
     }
 
     private ProjectDatabaseBinding loadBinding(JsonObject config, String projectPath) {
@@ -182,7 +215,11 @@ public class ProjectDatabaseBindingManager {
     private Path writeGeneratedServerConfig(String projectPath, ProjectDatabaseBinding binding) throws IOException {
         Path configPath = getGeneratedConfigPath(projectPath);
         Files.createDirectories(configPath.getParent());
+        writeStringAtomically(configPath, GSON.toJson(buildServerConfig(binding)));
+        return configPath;
+    }
 
+    private JsonObject buildServerConfig(ProjectDatabaseBinding binding) {
         JsonObject source = new JsonObject();
         source.addProperty("id", binding.sourceId());
         source.addProperty("dialect", binding.dialect());
@@ -217,9 +254,128 @@ public class ProjectDatabaseBindingManager {
         JsonObject root = new JsonObject();
         root.addProperty("defaultSource", binding.sourceId());
         root.add("sources", sources);
+        return root;
+    }
 
-        writeStringAtomically(configPath, GSON.toJson(root));
-        return configPath;
+    private JsonObject runPingProcess(ProjectDatabaseBinding binding, Path configPath) throws IOException, InterruptedException {
+        Path installDir = resolveEffectiveInstallDir(binding);
+        String classpath = installDir.resolve("lib") + File.separator + "*";
+        ProcessBuilder builder = new ProcessBuilder(
+                resolveJavaExecutable().toString(),
+                "-cp",
+                classpath,
+                SERVER_MAIN_CLASS,
+                "--config",
+                configPath.toString(),
+                "--source",
+                binding.sourceId(),
+                "--ping"
+        );
+        Process process = builder.start();
+        StringBuilder stdout = new StringBuilder();
+        StringBuilder stderr = new StringBuilder();
+        Thread stdoutThread = new Thread(() -> copyStream(process.getInputStream(), stdout), "db-ping-stdout");
+        Thread stderrThread = new Thread(() -> copyStream(process.getErrorStream(), stderr), "db-ping-stderr");
+        stdoutThread.start();
+        stderrThread.start();
+
+        boolean finished = process.waitFor(PING_TIMEOUT_SEC, TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            stdoutThread.join(1000);
+            stderrThread.join(1000);
+            return connectionFailure("连接超时");
+        }
+        stdoutThread.join(1000);
+        stderrThread.join(1000);
+        return interpretPingResult(process.exitValue(), stdout.toString(), stderr.toString());
+    }
+
+    private JsonObject interpretPingResult(int exitCode, String stdout, String stderr) {
+        JsonObject payload = extractJsonObject(stdout);
+        if (exitCode == 0 && payload != null && payload.has("ok") && payload.get("ok").getAsBoolean()) {
+            JsonObject result = new JsonObject();
+            result.addProperty("success", true);
+            if (payload.has("dialect") && !payload.get("dialect").isJsonNull()) {
+                result.addProperty("dialect", payload.get("dialect").getAsString());
+            }
+            if (payload.has("executionTimeMs") && !payload.get("executionTimeMs").isJsonNull()) {
+                result.addProperty("executionTimeMs", payload.get("executionTimeMs").getAsLong());
+            }
+            return result;
+        }
+
+        String message = null;
+        if (payload != null && payload.has("error") && !payload.get("error").isJsonNull()) {
+            message = payload.get("error").getAsString();
+        }
+        if (message == null || message.isBlank()) {
+            String errorText = stderr == null ? "" : stderr.trim();
+            message = errorText.isBlank() ? "连接失败，退出码 " + exitCode : firstLine(errorText);
+        }
+        return connectionFailure(truncate(message, 400));
+    }
+
+    private static JsonObject extractJsonObject(String stdout) {
+        if (stdout == null || stdout.isBlank()) {
+            return null;
+        }
+        String candidate = null;
+        for (String line : stdout.split("\\R")) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+                candidate = trimmed;
+            }
+        }
+        if (candidate == null) {
+            return null;
+        }
+        try {
+            return GSON.fromJson(candidate, JsonObject.class);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private static void copyStream(InputStream inputStream, StringBuilder target) {
+        try (inputStream) {
+            target.append(new String(inputStream.readAllBytes(), StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            LOG.debug("[ProjectDatabaseBindingManager] Failed to read database ping output", e);
+        }
+    }
+
+    private static String connectionInputMessage(ProjectDatabaseBinding binding) {
+        if (binding.jdbcUrl().isBlank()) {
+            return "请填写 JDBC URL";
+        }
+        if (binding.username().isBlank() && binding.usernameEnv().isBlank()) {
+            return "请填写用户名，或填写用户名环境变量";
+        }
+        if (binding.password().isBlank() && binding.passwordEnv().isBlank()) {
+            return "请填写密码，或填写密码环境变量";
+        }
+        return null;
+    }
+
+    private static JsonObject connectionFailure(String message) {
+        JsonObject result = new JsonObject();
+        result.addProperty("success", false);
+        result.addProperty("message", message);
+        return result;
+    }
+
+    private static String firstLine(String value) {
+        int newline = value.indexOf('\n');
+        String line = newline < 0 ? value : value.substring(0, newline);
+        return line.trim();
+    }
+
+    private static String truncate(String value, int maxLength) {
+        if (value == null || value.length() <= maxLength) {
+            return value;
+        }
+        return value.substring(0, maxLength);
     }
 
     private void upsertClaudeLauncher(String projectPath, ProjectDatabaseBinding binding, Path generatedConfigPath)
