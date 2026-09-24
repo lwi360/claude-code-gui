@@ -17,6 +17,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.Locale;
+import java.util.Set;
 import java.util.function.Function;
 
 /**
@@ -34,6 +35,7 @@ public class ProjectDatabaseBindingManager {
     private static final int QUERY_TIMEOUT_SEC = 30;
     private static final int CODEX_STARTUP_TIMEOUT_SEC = 30;
     private static final int CODEX_TOOL_TIMEOUT_SEC = 120;
+    private static final Set<String> SUPPORTED_DIALECTS = Set.of("postgresql", "mysql", "oracle", "dameng");
 
     private final ConfigPathManager pathManager;
     private final Function<Void, JsonObject> configReader;
@@ -127,9 +129,7 @@ public class ProjectDatabaseBindingManager {
         if (!binding.sourceId().matches("[A-Za-z0-9_.-]+")) {
             throw new IllegalArgumentException("sourceId only supports letters, digits, dot, underscore, and hyphen");
         }
-        if (!"postgresql".equals(binding.dialect())
-                && !"mysql".equals(binding.dialect())
-                && !"oracle".equals(binding.dialect())) {
+        if (!SUPPORTED_DIALECTS.contains(binding.dialect())) {
             throw new IllegalArgumentException("Unsupported dialect: " + binding.dialect());
         }
         if (!"dev-write".equals(binding.mode()) && !"read-only".equals(binding.mode())) {
@@ -300,7 +300,8 @@ public class ProjectDatabaseBindingManager {
         if ("postgresql".equals(binding.dialect())) {
             return "public";
         }
-        if ("oracle".equals(binding.dialect()) && !binding.username().isBlank()) {
+        if (("oracle".equals(binding.dialect()) || "dameng".equals(binding.dialect()))
+                && !binding.username().isBlank()) {
             return binding.username().toUpperCase(Locale.ROOT);
         }
         return "";

@@ -3,7 +3,8 @@ package com.github.claudecodegui.dbmcp.dialect;
 public enum DatabaseDialect {
     POSTGRESQL,
     MYSQL,
-    ORACLE;
+    ORACLE,
+    DAMENG;
 
     public static DatabaseDialect from(String configuredValue, String jdbcUrl) {
         if (configuredValue != null && !configuredValue.isBlank()) {
@@ -12,6 +13,7 @@ public enum DatabaseDialect {
                 case "postgres", "postgresql" -> POSTGRESQL;
                 case "mysql" -> MYSQL;
                 case "oracle" -> ORACLE;
+                case "dm", "dameng" -> DAMENG;
                 default -> throw new IllegalArgumentException("Unsupported dialect: " + configuredValue);
             };
         }
@@ -26,6 +28,9 @@ public enum DatabaseDialect {
             }
             if (normalizedUrl.startsWith("jdbc:oracle:")) {
                 return ORACLE;
+            }
+            if (normalizedUrl.startsWith("jdbc:dm:")) {
+                return DAMENG;
             }
         }
 

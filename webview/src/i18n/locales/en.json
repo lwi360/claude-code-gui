@@ -658,7 +658,8 @@
             "options": {
               "postgresql": "PostgreSQL",
               "mysql": "MySQL",
-              "oracle": "Oracle"
+              "oracle": "Oracle",
+              "dameng": "Dameng"
             }
           },
           "mode": {
@@ -670,7 +671,7 @@
           },
           "jdbcUrl": {
             "label": "JDBC URL",
-            "placeholder": "jdbc:postgresql://host:5432/dbname"
+            "placeholder": "jdbc:dm://host:5236 or jdbc:postgresql://host:5432/dbname"
           },
           "schema": {
             "label": "Schema",

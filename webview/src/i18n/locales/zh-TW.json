@@ -427,7 +427,8 @@
             "options": {
               "postgresql": "PostgreSQL",
               "mysql": "MySQL",
-              "oracle": "Oracle"
+              "oracle": "Oracle",
+              "dameng": "達夢"
             }
           },
           "mode": {
@@ -439,7 +440,7 @@
           },
           "jdbcUrl": {
             "label": "JDBC URL",
-            "placeholder": "例如 jdbc:postgresql://host:5432/dbname"
+            "placeholder": "例如 jdbc:dm://host:5236 或 jdbc:postgresql://host:5432/dbname"
           },
           "schema": {
             "label": "Schema",

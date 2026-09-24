@@ -219,6 +219,7 @@ const EnvironmentTab = ({
                 <option value="postgresql">{t(`${dbBindingBaseKey}.fields.dialect.options.postgresql`)}</option>
                 <option value="mysql">{t(`${dbBindingBaseKey}.fields.dialect.options.mysql`)}</option>
                 <option value="oracle">{t(`${dbBindingBaseKey}.fields.dialect.options.oracle`)}</option>
+                <option value="dameng">{t(`${dbBindingBaseKey}.fields.dialect.options.dameng`)}</option>
               </select>
             </div>
           </div>

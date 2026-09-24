@@ -1,5 +1,6 @@
 package com.github.claudecodegui.dbmcp.config;
 
+import com.github.claudecodegui.dbmcp.dialect.DatabaseDialect;
 import org.junit.Test;
 
 import java.nio.file.Files;
@@ -42,5 +43,49 @@ public class ConfigLoaderTest {
         assertEquals(DatabaseMode.READ_ONLY, configuration.activeSource().mode());
         assertEquals(500, configuration.activeSource().maxRows());
         assertTrue(configuration.sources().containsKey("dev-pg"));
+    }
+
+    @Test
+    public void loadDamengSourceUsesDmDriver() throws Exception {
+        Path configFile = Files.createTempFile("db-mcp-dameng", ".json");
+        Files.writeString(configFile, """
+                {
+                  "sources": [
+                    {
+                      "id": "dev-dm",
+                      "dialect": "dm",
+                      "jdbcUrl": "jdbc:dm://127.0.0.1:5236",
+                      "username": "SYSDBA",
+                      "password": "secret"
+                    }
+                  ]
+                }
+                """);
+
+        ServerConfiguration configuration = ConfigLoader.load(configFile, null);
+
+        assertEquals(DatabaseDialect.DAMENG, configuration.activeSource().dialect());
+        assertEquals("dm.jdbc.driver.DmDriver", configuration.activeSource().driverClass());
+    }
+
+    @Test
+    public void inferDamengDialectFromJdbcUrl() throws Exception {
+        Path configFile = Files.createTempFile("db-mcp-dameng-url", ".json");
+        Files.writeString(configFile, """
+                {
+                  "sources": [
+                    {
+                      "id": "dev-dm",
+                      "jdbcUrl": "jdbc:dm://127.0.0.1:5236",
+                      "username": "SYSDBA",
+                      "password": "secret"
+                    }
+                  ]
+                }
+                """);
+
+        ServerConfiguration configuration = ConfigLoader.load(configFile, "dev-dm");
+
+        assertEquals(DatabaseDialect.DAMENG, configuration.activeSource().dialect());
     }
 }

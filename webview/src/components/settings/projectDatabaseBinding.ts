@@ -1,4 +1,4 @@
-export type ProjectDatabaseDialect = 'postgresql' | 'mysql' | 'oracle';
+export type ProjectDatabaseDialect = 'postgresql' | 'mysql' | 'oracle' | 'dameng';
 export type ProjectDatabaseMode = 'dev-write' | 'read-only';
 
 export interface ProjectDatabaseBinding {

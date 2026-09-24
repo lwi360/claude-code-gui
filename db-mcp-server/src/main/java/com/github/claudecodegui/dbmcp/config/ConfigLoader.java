@@ -96,6 +96,7 @@ public final class ConfigLoader {
             case POSTGRESQL -> "org.postgresql.Driver";
             case MYSQL -> "com.mysql.cj.jdbc.Driver";
             case ORACLE -> "oracle.jdbc.OracleDriver";
+            case DAMENG -> "dm.jdbc.driver.DmDriver";
         };
     }
 }

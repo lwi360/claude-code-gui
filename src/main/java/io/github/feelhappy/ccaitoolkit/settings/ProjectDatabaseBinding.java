@@ -206,7 +206,13 @@ final class ProjectDatabaseBinding {
 
     private static String normalizeDialect(String value) {
         String normalized = trimToEmpty(value).toLowerCase(Locale.ROOT);
-        return normalized.isEmpty() ? DEFAULT_DIALECT : normalized;
+        if (normalized.isEmpty()) {
+            return DEFAULT_DIALECT;
+        }
+        if ("dm".equals(normalized)) {
+            return "dameng";
+        }
+        return normalized;
     }
 
     private static String normalizeMode(String value) {
