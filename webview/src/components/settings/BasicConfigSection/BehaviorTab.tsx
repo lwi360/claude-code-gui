@@ -114,6 +114,12 @@ export interface BehaviorTabProps {
   onSystemNotificationOnlyWhenUnfocusedChange?: (enabled: boolean) => void;
   aiTitleGenerationEnabled?: boolean;
   onAiTitleGenerationEnabledChange?: (enabled: boolean) => void;
+  nextEditEnabled?: boolean;
+  onNextEditEnabledChange?: (enabled: boolean) => void;
+  nextEditShowWithLookup?: boolean;
+  onNextEditShowWithLookupChange?: (enabled: boolean) => void;
+  nextEditDisabledLanguages?: string;
+  onNextEditDisabledLanguagesChange?: (languages: string) => void;
 }
 
 const BehaviorTab = ({
@@ -154,9 +160,19 @@ const BehaviorTab = ({
   onAskUserQuestionSoundNotificationEnabledChange = () => {},
   systemNotificationOnlyWhenUnfocused = false,
   onSystemNotificationOnlyWhenUnfocusedChange = () => {},
-  aiTitleGenerationEnabled = true,
+  aiTitleGenerationEnabled = false,
   onAiTitleGenerationEnabledChange = () => {},
+  nextEditEnabled = false,
+  onNextEditEnabledChange = () => {},
+  nextEditShowWithLookup = true,
+  onNextEditShowWithLookupChange = () => {},
+  nextEditDisabledLanguages = 'plaintext',
+  onNextEditDisabledLanguagesChange = () => {},
 }: BehaviorTabProps) => {
+  const [languageDraft, setLanguageDraft] = useState(nextEditDisabledLanguages);
+  useEffect(() => {
+    setLanguageDraft(nextEditDisabledLanguages);
+  }, [nextEditDisabledLanguages]);
   const { t } = useTranslation();
 
   const soundOptions = useMemo(() => [
@@ -292,6 +308,49 @@ const BehaviorTab = ({
         disabledLabel={t('settings.basic.aiTitleGeneration.disabled')}
         hint={t('settings.basic.aiTitleGeneration.hint')}
       />
+
+      <ToggleSettingSection
+        icon="codicon-sparkle"
+        label={t('settings.basic.nextEdit.label')}
+        checked={nextEditEnabled}
+        onChange={onNextEditEnabledChange}
+        enabledLabel={t('settings.basic.nextEdit.enabled')}
+        disabledLabel={t('settings.basic.nextEdit.disabled')}
+        hint={t('settings.basic.nextEdit.hint')}
+      />
+
+      <ToggleSettingSection
+        icon="codicon-code"
+        label={t('settings.basic.nextEdit.showWithLookup')}
+        checked={nextEditShowWithLookup}
+        onChange={onNextEditShowWithLookupChange}
+        enabledLabel={t('settings.basic.nextEdit.enabled')}
+        disabledLabel={t('settings.basic.nextEdit.disabled')}
+        hint={t('settings.basic.nextEdit.showWithLookupHint')}
+      />
+
+      <div className={styles.streamingSection}>
+        <div className={styles.fieldHeader}>
+          <span className="codicon codicon-exclude" />
+          <span className={styles.fieldLabel}>{t('settings.basic.nextEdit.disabledLanguages')}</span>
+        </div>
+        <input
+          className={styles.nodePathInput}
+          value={languageDraft}
+          spellCheck={false}
+          onChange={(event) => setLanguageDraft(event.target.value)}
+          onBlur={() => onNextEditDisabledLanguagesChange(languageDraft)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              (event.target as HTMLInputElement).blur();
+            }
+          }}
+        />
+        <small className={styles.formHint}>
+          <span className="codicon codicon-info" />
+          <span>{t('settings.basic.nextEdit.disabledLanguagesHint')}</span>
+        </small>
+      </div>
 
       <ToggleSettingSection
         icon="codicon-comment-discussion"

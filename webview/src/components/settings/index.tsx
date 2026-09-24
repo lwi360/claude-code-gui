@@ -180,6 +180,15 @@ const SettingsView = ({
     aiTitleGenerationEnabled,
     setAiTitleGenerationEnabled,
     handleAiTitleGenerationEnabledChange,
+    nextEditEnabled,
+    setNextEditEnabled,
+    nextEditShowWithLookup,
+    setNextEditShowWithLookup,
+    nextEditDisabledLanguages,
+    setNextEditDisabledLanguages,
+    handleNextEditEnabledChange,
+    handleNextEditShowWithLookupChange,
+    handleNextEditDisabledLanguagesChange,
     handleSaveCommitPrompt,
     handleProjectDatabaseBindingChange,
     handleSaveProjectDatabaseBinding,
@@ -336,6 +345,9 @@ const SettingsView = ({
     setAskUserQuestionSoundNotificationEnabled,
     setSystemNotificationOnlyWhenUnfocused,
     setAiTitleGenerationEnabled,
+    setNextEditEnabled,
+    setNextEditShowWithLookup,
+    setNextEditDisabledLanguages,
   });
 
   // Save provider (wrapper function with validation logic)
@@ -507,6 +519,12 @@ const SettingsView = ({
               onSystemNotificationOnlyWhenUnfocusedChange={handleSystemNotificationOnlyWhenUnfocusedChange}
               aiTitleGenerationEnabled={aiTitleGenerationEnabled}
               onAiTitleGenerationEnabledChange={handleAiTitleGenerationEnabledChange}
+              nextEditEnabled={nextEditEnabled}
+              onNextEditEnabledChange={handleNextEditEnabledChange}
+              nextEditShowWithLookup={nextEditShowWithLookup}
+              onNextEditShowWithLookupChange={handleNextEditShowWithLookupChange}
+              nextEditDisabledLanguages={nextEditDisabledLanguages}
+              onNextEditDisabledLanguagesChange={handleNextEditDisabledLanguagesChange}
               nacosRegistryConfig={nacosRegistryConfig}
               onNacosRegistryConfigChange={handleNacosRegistryConfigChange}
               onSaveNacosRegistryConfig={handleSaveNacosRegistryConfig}

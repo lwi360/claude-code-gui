@@ -569,11 +569,53 @@ public class CodemossSettingsService {
     }
 
     public boolean getAiTitleGenerationEnabled() throws IOException {
-        return readGlobalBoolean("aiTitleGenerationEnabled", true);
+        return readGlobalBoolean("aiTitleGenerationEnabled", false);
     }
 
     public void setAiTitleGenerationEnabled(boolean enabled) throws IOException {
         writeGlobalBoolean("aiTitleGenerationEnabled", enabled);
+    }
+
+    public static final String DEFAULT_NEXT_EDIT_DISABLED_LANGUAGES = "plaintext";
+
+    private static final java.util.concurrent.atomic.AtomicInteger NEXT_EDIT_SETTINGS_GENERATION =
+            new java.util.concurrent.atomic.AtomicInteger();
+
+    public static int getNextEditSettingsGeneration() {
+        return NEXT_EDIT_SETTINGS_GENERATION.get();
+    }
+
+    public boolean getNextEditEnabled() throws IOException {
+        return readGlobalBoolean("nextEditEnabled", false);
+    }
+
+    public void setNextEditEnabled(boolean enabled) throws IOException {
+        writeGlobalBoolean("nextEditEnabled", enabled);
+        NEXT_EDIT_SETTINGS_GENERATION.incrementAndGet();
+    }
+
+    public boolean getNextEditShowWithLookup() throws IOException {
+        return readGlobalBoolean("nextEditShowWithLookup", true);
+    }
+
+    public void setNextEditShowWithLookup(boolean enabled) throws IOException {
+        writeGlobalBoolean("nextEditShowWithLookup", enabled);
+        NEXT_EDIT_SETTINGS_GENERATION.incrementAndGet();
+    }
+
+    public String getNextEditDisabledLanguages() throws IOException {
+        JsonObject config = readConfig();
+        if (config.has("nextEditDisabledLanguages") && !config.get("nextEditDisabledLanguages").isJsonNull()) {
+            return config.get("nextEditDisabledLanguages").getAsString();
+        }
+        return DEFAULT_NEXT_EDIT_DISABLED_LANGUAGES;
+    }
+
+    public void setNextEditDisabledLanguages(String languages) throws IOException {
+        JsonObject config = readConfig();
+        config.addProperty("nextEditDisabledLanguages", languages == null ? "" : languages);
+        writeConfig(config);
+        NEXT_EDIT_SETTINGS_GENERATION.incrementAndGet();
     }
 
     private boolean readGlobalBoolean(String key, boolean defaultValue) throws IOException {

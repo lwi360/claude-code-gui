@@ -551,13 +551,63 @@ public class ProjectConfigHandler {
     }
 
     public void handleGetAiTitleGenerationEnabled() {
-        handleGetGlobalBoolean("window.updateAiTitleGenerationEnabled", "aiTitleGenerationEnabled", true,
+        handleGetGlobalBoolean("window.updateAiTitleGenerationEnabled", "aiTitleGenerationEnabled", false,
                 settingsService::getAiTitleGenerationEnabled);
     }
 
     public void handleSetAiTitleGenerationEnabled(String content) {
-        handleSetGlobalBoolean(content, "aiTitleGenerationEnabled", true,
+        handleSetGlobalBoolean(content, "aiTitleGenerationEnabled", false,
                 settingsService::setAiTitleGenerationEnabled, "window.updateAiTitleGenerationEnabled");
+    }
+
+    public void handleGetNextEditEnabled() {
+        handleGetGlobalBoolean("window.updateNextEditEnabled", "nextEditEnabled", false,
+                settingsService::getNextEditEnabled);
+    }
+
+    public void handleSetNextEditEnabled(String content) {
+        handleSetGlobalBoolean(content, "nextEditEnabled", false,
+                settingsService::setNextEditEnabled, "window.updateNextEditEnabled");
+    }
+
+    public void handleGetNextEditShowWithLookup() {
+        handleGetGlobalBoolean("window.updateNextEditShowWithLookup", "nextEditShowWithLookup", true,
+                settingsService::getNextEditShowWithLookup);
+    }
+
+    public void handleSetNextEditShowWithLookup(String content) {
+        handleSetGlobalBoolean(content, "nextEditShowWithLookup", true,
+                settingsService::setNextEditShowWithLookup, "window.updateNextEditShowWithLookup");
+    }
+
+    public void handleGetNextEditDisabledLanguages() {
+        try {
+            pushJson("window.updateNextEditDisabledLanguages", "nextEditDisabledLanguages",
+                    settingsService.getNextEditDisabledLanguages());
+        } catch (Exception e) {
+            LOG.error("[ProjectConfigHandler] Failed to get nextEditDisabledLanguages: " + e.getMessage(), e);
+            pushJson("window.updateNextEditDisabledLanguages", "nextEditDisabledLanguages",
+                    CodemossSettingsService.DEFAULT_NEXT_EDIT_DISABLED_LANGUAGES);
+        }
+    }
+
+    public void handleSetNextEditDisabledLanguages(String content) {
+        try {
+            JsonObject json = gson.fromJson(content, JsonObject.class);
+            String languages = "";
+            if (json != null && json.has("nextEditDisabledLanguages") && !json.get("nextEditDisabledLanguages").isJsonNull()) {
+                languages = json.get("nextEditDisabledLanguages").getAsString();
+            }
+            if (languages.length() > 500) {
+                languages = languages.substring(0, 500);
+            }
+            settingsService.setNextEditDisabledLanguages(languages);
+            pushJson("window.updateNextEditDisabledLanguages", "nextEditDisabledLanguages", languages);
+        } catch (Exception e) {
+            LOG.error("[ProjectConfigHandler] Failed to set nextEditDisabledLanguages: " + e.getMessage(), e);
+            ApplicationManager.getApplication().invokeLater(() ->
+                    context.callJavaScript("window.showError", context.escapeJs("保存设置失败: " + e.getMessage())));
+        }
     }
 
     private void handleGetGlobalBoolean(String callback, String key, boolean fallback, BooleanReader reader) {
@@ -586,6 +636,14 @@ public class ProjectConfigHandler {
     }
 
     private void pushJson(String callback, String key, int value) {
+        JsonObject response = new JsonObject();
+        response.addProperty(key, value);
+        String json = gson.toJson(response);
+        ApplicationManager.getApplication().invokeLater(() ->
+                context.callJavaScript(callback, context.escapeJs(json)));
+    }
+
+    private void pushJson(String callback, String key, String value) {
         JsonObject response = new JsonObject();
         response.addProperty(key, value);
         String json = gson.toJson(response);

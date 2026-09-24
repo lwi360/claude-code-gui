@@ -57,6 +57,9 @@ export interface SettingsWindowCallbacksDeps {
   setAskUserQuestionSoundNotificationEnabled?: (enabled: boolean) => void;
   setSystemNotificationOnlyWhenUnfocused?: (enabled: boolean) => void;
   setAiTitleGenerationEnabled?: (enabled: boolean) => void;
+  setNextEditEnabled?: (enabled: boolean) => void;
+  setNextEditShowWithLookup?: (enabled: boolean) => void;
+  setNextEditDisabledLanguages?: (languages: string) => void;
 
   // Hook functions
   updateProviders: (providers: ProviderConfig[]) => void;
@@ -535,9 +538,34 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
     };
     window.updateAiTitleGenerationEnabled = (jsonStr: string) => {
       try {
-        applyBoolean(jsonStr, 'aiTitleGenerationEnabled', true, d().setAiTitleGenerationEnabled);
+        applyBoolean(jsonStr, 'aiTitleGenerationEnabled', false, d().setAiTitleGenerationEnabled);
       } catch (error) {
         console.error('[SettingsView] Failed to parse AI title generation setting:', error);
+      }
+    };
+    window.updateNextEditEnabled = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'nextEditEnabled', false, d().setNextEditEnabled);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse next edit setting:', error);
+      }
+    };
+    window.updateNextEditShowWithLookup = (jsonStr: string) => {
+      try {
+        applyBoolean(jsonStr, 'nextEditShowWithLookup', true, d().setNextEditShowWithLookup);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse next edit lookup setting:', error);
+      }
+    };
+    window.updateNextEditDisabledLanguages = (jsonStr: string) => {
+      try {
+        const data = JSON.parse(jsonStr);
+        const value = typeof data?.nextEditDisabledLanguages === 'string'
+          ? data.nextEditDisabledLanguages
+          : 'plaintext';
+        d().setNextEditDisabledLanguages?.(value);
+      } catch (error) {
+        console.error('[SettingsView] Failed to parse next edit languages:', error);
       }
     };
 
@@ -564,6 +592,9 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
     sendToJava('get_ask_user_question_sound_notification_enabled:');
     sendToJava('get_system_notification_only_when_unfocused:');
     sendToJava('get_ai_title_generation_enabled:');
+    sendToJava('get_next_edit_enabled:');
+    sendToJava('get_next_edit_show_with_lookup:');
+    sendToJava('get_next_edit_disabled_languages:');
 
     return () => {
       d().cleanupAgentsTimeout();
@@ -612,6 +643,9 @@ export function useSettingsWindowCallbacks(deps: SettingsWindowCallbacksDeps) {
       window.updateAskUserQuestionSoundNotificationEnabled = undefined;
       window.updateSystemNotificationOnlyWhenUnfocused = undefined;
       window.updateAiTitleGenerationEnabled = undefined;
+      window.updateNextEditEnabled = undefined;
+      window.updateNextEditShowWithLookup = undefined;
+      window.updateNextEditDisabledLanguages = undefined;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t]);

@@ -118,8 +118,8 @@ async function hasExistingAiTitle(sessionFile) {
 
 /**
  * Read the AI title generation toggle from ~/.codemoss/config.json.
- * Defaults to true (enabled) when the config is missing, malformed, or the
- * field is not set, matching the Java CodemossSettingsService default.
+ * Defaults to false when the config is missing, malformed, or the field is
+ * not set, matching the Java CodemossSettingsService default.
  * @returns {Promise<boolean>}
  */
 async function isTitleGenerationEnabled() {
@@ -130,10 +130,22 @@ async function isTitleGenerationEnabled() {
     if (config && typeof config === 'object' && 'aiTitleGenerationEnabled' in config) {
       return config.aiTitleGenerationEnabled !== false;
     }
-    return true;
+    return false;
   } catch {
-    return true;
+    return false;
   }
+}
+
+function stripHarnessColdStart(text) {
+  const trimmed = String(text || '').replace(/^\s+/, '');
+  if (!trimmed.startsWith('[HARNESS COLD-START]')) {
+    return text;
+  }
+  const split = trimmed.indexOf('\n\n');
+  if (split < 0) {
+    return '';
+  }
+  return trimmed.slice(split + 2).replace(/^\s+/, '');
 }
 
 function getSessionFilePath(sessionId, cwd) {
@@ -369,9 +381,12 @@ export async function generateSessionTitle(userMessage, sessionId, cwd) {
   try {
     // Iterate by Unicode code point so we never split a surrogate pair
     // (e.g. CJK extension characters or emoji) when truncating.
-    let input = userMessage;
-    if (userMessage.length > MAX_CONVERSATION_TEXT) {
-      const codePoints = Array.from(userMessage);
+    let input = stripHarnessColdStart(userMessage);
+    if (!input || !input.trim()) {
+      return true;
+    }
+    if (input.length > MAX_CONVERSATION_TEXT) {
+      const codePoints = Array.from(input);
       if (codePoints.length > MAX_CONVERSATION_TEXT) {
         input = codePoints.slice(-MAX_CONVERSATION_TEXT).join('');
       }

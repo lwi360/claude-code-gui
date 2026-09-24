@@ -89,6 +89,13 @@
 
         <!-- Notification group for DevTools and other balloon notifications -->
         <notificationGroup id="CC AI Toolkit Notifications" displayType="BALLOON"/>
+
+        <applicationService serviceImplementation="io.github.feelhappy.ccaitoolkit.completion.CodePredictionClient"/>
+
+        <inline.completion.provider
+                id="cc-ai-toolkit.next-edit"
+                implementation="io.github.feelhappy.ccaitoolkit.completion.NextEditInlineCompletionProvider"
+                order="first, before ml.llm.CloudInlineCompletionProvider"/>
     </extensions>
 
     <actions>
@@ -134,6 +141,13 @@
         <action id="CcAiToolkit.OpenDevToolsAction"
                 class="io.github.feelhappy.ccaitoolkit.action.dev.OpenDevToolsAction"
                 icon="AllIcons.Xml.Browsers.Chromium"/>
+
+        <!-- Send the selected Run/Debug console text into the chat input -->
+        <action id="CcAiToolkit.SendConsoleSelectionToInputAction"
+                class="io.github.feelhappy.ccaitoolkit.action.console.SendConsoleSelectionToInputAction"
+                icon="/icons/send-to-terminal.svg">
+            <add-to-group group-id="ConsoleView.PopupMenu" anchor="last"/>
+        </action>
 
         <!-- Action to send file path from the file tree to the input box -->
         <action id="CcAiToolkit.SendFilePathToInputAction"

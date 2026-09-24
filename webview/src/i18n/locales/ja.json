@@ -177,6 +177,16 @@
         "disabled": "Disabled",
         "hint": "After the first reply, a fast model writes a short session title and shows it in the chat header and history list."
       },
+      "nextEdit": {
+        "label": "Code Prediction",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "After you pause, gray text predicts the next few lines at the caret. Tab accepts, Esc dismisses. Each prediction sends the nearby code to the current provider. Claude CLI login does not predict.",
+        "showWithLookup": "Show inline suggestions during IDE completion",
+        "showWithLookupHint": "Keep the inline prediction visible while the native completion popup is open.",
+        "disabledLanguages": "Languages or extensions",
+        "disabledLanguagesHint": "Disable inline generation for these languages or extensions, separated by commas"
+      },
       "detailedOutput": {
         "label": "Detailed Output",
         "enabled": "Enabled",

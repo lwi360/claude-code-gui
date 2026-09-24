@@ -762,7 +762,17 @@
         "label": "AI 生成会话标题",
         "enabled": "已开启",
         "disabled": "已关闭",
-        "hint": "首次对话结束后，使用当前供应商的快速模型生成一句会话标题，并显示在聊天标题和历史列表中。"
+        "hint": "关闭时，聊天标题和历史列表使用你发送的第一条消息。开启后，首次对话结束会用快速模型另写一句标题。"
+      },
+      "nextEdit": {
+        "label": "编码预测",
+        "enabled": "已开启",
+        "disabled": "已关闭",
+        "hint": "停手后，灰色文字会随着模型返回逐字出现。Tab 接受，Esc 取消。补全弹窗打开时也可以同时显示。每次预测都会把光标附近的代码发给当前供应商。Claude CLI 登录时不会预测。",
+        "showWithLookup": "IDE 补全时展示行间代码建议",
+        "showWithLookupHint": "原生代码补全弹窗打开时，仍然显示行间预测。",
+        "disabledLanguages": "编程语言或扩展名",
+        "disabledLanguagesHint": "禁用指定编程语言或扩展名的行间生成，以英文逗号分隔"
       },
       "detailedOutput": {
         "label": "详细输出",

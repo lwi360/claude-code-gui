@@ -762,7 +762,17 @@
         "label": "AI Session Title",
         "enabled": "Enabled",
         "disabled": "Disabled",
-        "hint": "After the first reply, a fast model writes a short session title and shows it in the chat header and history list."
+        "hint": "When off, the chat header and history use the first message you sent. When on, a fast model writes a short title after the first reply."
+      },
+      "nextEdit": {
+        "label": "Code Prediction",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "hint": "After you pause, gray text appears character by character as the model replies. Tab accepts, Esc dismisses. It can stay visible while the completion popup is open. Each prediction sends the nearby code to the current provider. Claude CLI login does not predict.",
+        "showWithLookup": "Show inline suggestions during IDE completion",
+        "showWithLookupHint": "Keep the inline prediction visible while the native completion popup is open.",
+        "disabledLanguages": "Languages or extensions",
+        "disabledLanguagesHint": "Disable inline generation for these languages or extensions, separated by commas"
       },
       "detailedOutput": {
         "label": "Detailed Output",

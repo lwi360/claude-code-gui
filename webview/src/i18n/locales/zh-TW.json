@@ -516,6 +516,16 @@
         "disabled": "已關閉",
         "hint": "首次對話結束後，使用目前供應商的快速模型生成一句會話標題，並顯示在聊天標題和歷史列表中。"
       },
+      "nextEdit": {
+        "label": "編碼預測",
+        "enabled": "已開啟",
+        "disabled": "已關閉",
+        "hint": "停手後，在游標處用灰色文字預測接下來的幾行程式碼。Tab 接受，Esc 取消。每次預測都會把游標附近的程式碼發給目前供應商。Claude CLI 登入時不會預測。",
+        "showWithLookup": "IDE 補全時展示行間程式碼建議",
+        "showWithLookupHint": "原生程式碼補全彈窗打開時，仍然顯示行間預測。",
+        "disabledLanguages": "程式語言或副檔名",
+        "disabledLanguagesHint": "停用指定程式語言或副檔名的行間生成，以英文逗號分隔"
+      },
       "detailedOutput": {
         "label": "詳細輸出",
         "enabled": "已開啟",

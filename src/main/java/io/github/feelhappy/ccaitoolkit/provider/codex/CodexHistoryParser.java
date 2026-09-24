@@ -136,6 +136,10 @@ class CodexHistoryParser {
             return null;
         }
         text = TagExtractor.extractCommandMessageContent(text);
+        text = TagExtractor.stripHarnessColdStart(text);
+        if (text == null || text.isEmpty()) {
+            return null;
+        }
         return TextSanitizer.sanitizeAndTruncateSingleLine(text, 45);
     }
 

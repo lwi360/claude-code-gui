@@ -63,6 +63,12 @@ public class SettingsHandler extends BaseMessageHandler {
         "set_system_notification_only_when_unfocused",
         "get_ai_title_generation_enabled",
         "set_ai_title_generation_enabled",
+        "get_next_edit_enabled",
+        "set_next_edit_enabled",
+        "get_next_edit_show_with_lookup",
+        "set_next_edit_show_with_lookup",
+        "get_next_edit_disabled_languages",
+        "set_next_edit_disabled_languages",
         "get_ide_theme",
         "get_commit_prompt",
         "set_commit_prompt",
@@ -229,6 +235,24 @@ public class SettingsHandler extends BaseMessageHandler {
                 return true;
             case "set_ai_title_generation_enabled":
                 projectConfigHandler.handleSetAiTitleGenerationEnabled(content);
+                return true;
+            case "get_next_edit_enabled":
+                projectConfigHandler.handleGetNextEditEnabled();
+                return true;
+            case "set_next_edit_enabled":
+                projectConfigHandler.handleSetNextEditEnabled(content);
+                return true;
+            case "get_next_edit_show_with_lookup":
+                projectConfigHandler.handleGetNextEditShowWithLookup();
+                return true;
+            case "set_next_edit_show_with_lookup":
+                projectConfigHandler.handleSetNextEditShowWithLookup(content);
+                return true;
+            case "get_next_edit_disabled_languages":
+                projectConfigHandler.handleGetNextEditDisabledLanguages();
+                return true;
+            case "set_next_edit_disabled_languages":
+                projectConfigHandler.handleSetNextEditDisabledLanguages(content);
                 return true;
             case "get_ide_theme":
                 projectConfigHandler.handleGetIdeTheme();

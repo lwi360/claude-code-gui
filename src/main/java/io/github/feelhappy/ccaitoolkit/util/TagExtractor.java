@@ -44,6 +44,25 @@ public final class TagExtractor {
     }
 
     /**
+     * Drop the harness cold-start reminder that is prepended to the first user message.
+     * The title should be the text the user actually sent.
+     */
+    public static String stripHarnessColdStart(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        String trimmed = text.stripLeading();
+        if (!trimmed.startsWith("[HARNESS COLD-START]")) {
+            return text;
+        }
+        int split = trimmed.indexOf("\n\n");
+        if (split < 0) {
+            return "";
+        }
+        return trimmed.substring(split + 2).stripLeading();
+    }
+
+    /**
      * Extract content between opening and closing tags.
      *
      * @param text the text to search in

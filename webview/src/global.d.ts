@@ -238,6 +238,9 @@ interface Window {
   updateAskUserQuestionSoundNotificationEnabled?: (json: string) => void;
   updateSystemNotificationOnlyWhenUnfocused?: (json: string) => void;
   updateAiTitleGenerationEnabled?: (json: string) => void;
+  updateNextEditEnabled?: (json: string) => void;
+  updateNextEditShowWithLookup?: (json: string) => void;
+  updateNextEditDisabledLanguages?: (json: string) => void;
 
   /**
    * Update commit AI prompt configuration

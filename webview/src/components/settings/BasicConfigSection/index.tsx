@@ -104,6 +104,12 @@ interface BasicConfigSectionProps {
   onSystemNotificationOnlyWhenUnfocusedChange?: (enabled: boolean) => void;
   aiTitleGenerationEnabled?: boolean;
   onAiTitleGenerationEnabledChange?: (enabled: boolean) => void;
+  nextEditEnabled?: boolean;
+  onNextEditEnabledChange?: (enabled: boolean) => void;
+  nextEditShowWithLookup?: boolean;
+  onNextEditShowWithLookupChange?: (enabled: boolean) => void;
+  nextEditDisabledLanguages?: string;
+  onNextEditDisabledLanguagesChange?: (languages: string) => void;
 }
 
 const BasicConfigSection = (props: BasicConfigSectionProps) => {
@@ -185,6 +191,12 @@ const BasicConfigSection = (props: BasicConfigSectionProps) => {
           onSystemNotificationOnlyWhenUnfocusedChange={props.onSystemNotificationOnlyWhenUnfocusedChange}
           aiTitleGenerationEnabled={props.aiTitleGenerationEnabled}
           onAiTitleGenerationEnabledChange={props.onAiTitleGenerationEnabledChange}
+          nextEditEnabled={props.nextEditEnabled}
+          onNextEditEnabledChange={props.onNextEditEnabledChange}
+          nextEditShowWithLookup={props.nextEditShowWithLookup}
+          onNextEditShowWithLookupChange={props.onNextEditShowWithLookupChange}
+          nextEditDisabledLanguages={props.nextEditDisabledLanguages}
+          onNextEditDisabledLanguagesChange={props.onNextEditDisabledLanguagesChange}
         />
       )}
 

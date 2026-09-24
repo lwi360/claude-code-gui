@@ -72,6 +72,9 @@ export interface UseSettingsBasicActionsReturn {
   askUserQuestionSoundNotificationEnabled: boolean;
   systemNotificationOnlyWhenUnfocused: boolean;
   aiTitleGenerationEnabled: boolean;
+  nextEditEnabled: boolean;
+  nextEditShowWithLookup: boolean;
+  nextEditDisabledLanguages: string;
   // Nacos Registry
   nacosRegistryConfig: NacosRegistryConfig;
   savingNacosRegistryConfig: boolean;
@@ -103,6 +106,9 @@ export interface UseSettingsBasicActionsReturn {
   handleAskUserQuestionSoundNotificationEnabledChange: (enabled: boolean) => void;
   handleSystemNotificationOnlyWhenUnfocusedChange: (enabled: boolean) => void;
   handleAiTitleGenerationEnabledChange: (enabled: boolean) => void;
+  handleNextEditEnabledChange: (enabled: boolean) => void;
+  handleNextEditShowWithLookupChange: (enabled: boolean) => void;
+  handleNextEditDisabledLanguagesChange: (languages: string) => void;
   handleSaveCommitPrompt: () => void;
   handleProjectDatabaseBindingChange: <K extends keyof ProjectDatabaseBinding>(
     key: K,
@@ -158,6 +164,9 @@ export interface UseSettingsBasicActionsReturn {
   /** @internal */ setAskUserQuestionSoundNotificationEnabled: (enabled: boolean) => void;
   /** @internal */ setSystemNotificationOnlyWhenUnfocused: (enabled: boolean) => void;
   /** @internal */ setAiTitleGenerationEnabled: (enabled: boolean) => void;
+  /** @internal */ setNextEditEnabled: (enabled: boolean) => void;
+  /** @internal */ setNextEditShowWithLookup: (enabled: boolean) => void;
+  /** @internal */ setNextEditDisabledLanguages: (languages: string) => void;
   /** @internal */ setNacosRegistryConfig: (config: NacosRegistryConfig) => void;
   /** @internal */ setSavingNacosRegistryConfig: (saving: boolean) => void;
   /** @internal */ setTestingNacosConnection: (testing: boolean) => void;
@@ -243,7 +252,10 @@ export function useSettingsBasicActions({
   const [askUserQuestionNotificationEnabled, setAskUserQuestionNotificationEnabled] = useState(false);
   const [askUserQuestionSoundNotificationEnabled, setAskUserQuestionSoundNotificationEnabled] = useState(false);
   const [systemNotificationOnlyWhenUnfocused, setSystemNotificationOnlyWhenUnfocused] = useState(false);
-  const [aiTitleGenerationEnabled, setAiTitleGenerationEnabled] = useState(true);
+  const [aiTitleGenerationEnabled, setAiTitleGenerationEnabled] = useState(false);
+  const [nextEditEnabled, setNextEditEnabled] = useState(false);
+  const [nextEditShowWithLookup, setNextEditShowWithLookup] = useState(true);
+  const [nextEditDisabledLanguages, setNextEditDisabledLanguages] = useState('plaintext');
 
   // History completion toggle configuration
   const [historyCompletionEnabled, setHistoryCompletionEnabled] = useState<boolean>(() => {
@@ -424,6 +436,21 @@ export function useSettingsBasicActions({
     sendToJava(`set_ai_title_generation_enabled:${JSON.stringify({ aiTitleGenerationEnabled: enabled })}`);
   }, []);
 
+  const handleNextEditEnabledChange = useCallback((enabled: boolean) => {
+    setNextEditEnabled(enabled);
+    sendToJava(`set_next_edit_enabled:${JSON.stringify({ nextEditEnabled: enabled })}`);
+  }, []);
+
+  const handleNextEditShowWithLookupChange = useCallback((enabled: boolean) => {
+    setNextEditShowWithLookup(enabled);
+    sendToJava(`set_next_edit_show_with_lookup:${JSON.stringify({ nextEditShowWithLookup: enabled })}`);
+  }, []);
+
+  const handleNextEditDisabledLanguagesChange = useCallback((languages: string) => {
+    setNextEditDisabledLanguages(languages);
+    sendToJava(`set_next_edit_disabled_languages:${JSON.stringify({ nextEditDisabledLanguages: languages })}`);
+  }, []);
+
   // Commit AI prompt save handler
   const handleSaveCommitPrompt = useCallback(() => {
     setSavingCommitPrompt(true);
@@ -540,6 +567,12 @@ export function useSettingsBasicActions({
     setSystemNotificationOnlyWhenUnfocused,
     aiTitleGenerationEnabled,
     setAiTitleGenerationEnabled,
+    nextEditEnabled,
+    setNextEditEnabled,
+    nextEditShowWithLookup,
+    setNextEditShowWithLookup,
+    nextEditDisabledLanguages,
+    setNextEditDisabledLanguages,
     handleNewSessionConfirmEnabledChange,
     handleDetailedOutputEnabledChange,
     handlePermissionDialogTimeoutChange,
@@ -550,6 +583,9 @@ export function useSettingsBasicActions({
     handleAskUserQuestionSoundNotificationEnabledChange,
     handleSystemNotificationOnlyWhenUnfocusedChange,
     handleAiTitleGenerationEnabledChange,
+    handleNextEditEnabledChange,
+    handleNextEditShowWithLookupChange,
+    handleNextEditDisabledLanguagesChange,
     handleSaveNodePath,
     handleSaveWorkingDirectory,
     handleStreamingEnabledChange,
