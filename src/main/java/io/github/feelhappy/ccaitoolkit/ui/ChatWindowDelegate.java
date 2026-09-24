@@ -1,0 +1,528 @@
+package io.github.feelhappy.ccaitoolkit.ui;
+
+import io.github.feelhappy.ccaitoolkit.i18n.ClaudeCodeGuiBundle;
+import io.github.feelhappy.ccaitoolkit.session.ClaudeSession;
+import io.github.feelhappy.ccaitoolkit.settings.CodemossSettingsService;
+import io.github.feelhappy.ccaitoolkit.handler.AgentHandler;
+import io.github.feelhappy.ccaitoolkit.handler.BmadHandler;
+import io.github.feelhappy.ccaitoolkit.handler.ClipboardHandler;
+import io.github.feelhappy.ccaitoolkit.handler.CursorHandler;
+import io.github.feelhappy.ccaitoolkit.handler.CodexMcpServerHandler;
+import io.github.feelhappy.ccaitoolkit.handler.DependencyHandler;
+import io.github.feelhappy.ccaitoolkit.handler.DiffHandler;
+import io.github.feelhappy.ccaitoolkit.handler.DebateHandler;
+import io.github.feelhappy.ccaitoolkit.handler.GitNexusHandler;
+import io.github.feelhappy.ccaitoolkit.handler.HarnessHandler;
+import io.github.feelhappy.ccaitoolkit.handler.ImpeccableHandler;
+import io.github.feelhappy.ccaitoolkit.handler.MiniMaxHandler;
+import io.github.feelhappy.ccaitoolkit.handler.NacosRegistryHandler;
+import io.github.feelhappy.ccaitoolkit.handler.core.HandlerContext;
+import io.github.feelhappy.ccaitoolkit.handler.file.FileExportHandler;
+import io.github.feelhappy.ccaitoolkit.handler.file.FileHandler;
+import io.github.feelhappy.ccaitoolkit.handler.file.UndoFileHandler;
+import io.github.feelhappy.ccaitoolkit.handler.history.HistoryHandler;
+import io.github.feelhappy.ccaitoolkit.handler.McpServerHandler;
+import io.github.feelhappy.ccaitoolkit.handler.core.MessageDispatcher;
+import io.github.feelhappy.ccaitoolkit.handler.PermissionHandler;
+import io.github.feelhappy.ccaitoolkit.handler.PromptEnhancerHandler;
+import io.github.feelhappy.ccaitoolkit.handler.PromptHandler;
+import io.github.feelhappy.ccaitoolkit.handler.provider.ProviderHandler;
+import io.github.feelhappy.ccaitoolkit.handler.RewindHandler;
+import io.github.feelhappy.ccaitoolkit.handler.RewriteHandler;
+import io.github.feelhappy.ccaitoolkit.handler.SessionHandler;
+import io.github.feelhappy.ccaitoolkit.handler.SessionHandoffHandler;
+import io.github.feelhappy.ccaitoolkit.handler.SettingsHandler;
+import io.github.feelhappy.ccaitoolkit.handler.SkillHandler;
+import io.github.feelhappy.ccaitoolkit.handler.TabHandler;
+import io.github.feelhappy.ccaitoolkit.handler.UiUxProHandler;
+import io.github.feelhappy.ccaitoolkit.handler.WindowEventHandler;
+import io.github.feelhappy.ccaitoolkit.permission.PermissionService;
+import io.github.feelhappy.ccaitoolkit.provider.claude.ClaudeSDKBridge;
+import io.github.feelhappy.ccaitoolkit.provider.codex.CodexSDKBridge;
+import io.github.feelhappy.ccaitoolkit.provider.common.MessageCallback;
+import io.github.feelhappy.ccaitoolkit.provider.common.SDKResult;
+import io.github.feelhappy.ccaitoolkit.session.SessionLifecycleManager;
+import io.github.feelhappy.ccaitoolkit.session.StreamMessageCoalescer;
+import io.github.feelhappy.ccaitoolkit.util.JsUtils;
+import com.google.gson.JsonObject;
+import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.diagnostic.Logger;
+import com.intellij.openapi.project.Project;
+import com.intellij.ui.content.Content;
+import com.intellij.ui.jcef.JBCefBrowser;
+import com.intellij.util.concurrency.AppExecutorUtil;
+
+import javax.swing.*;
+import java.util.List;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Delegates for initialization setup and runtime operations:
+ * handler registration, permission setup, tab status, QuickFix, and frontend ready handling.
+ */
+public class ChatWindowDelegate {
+
+    private static final Logger LOG = Logger.getInstance(ChatWindowDelegate.class);
+    private static final String NODE_PATH_PROPERTY_KEY = "claude.code.node.path";
+    private static final String PERMISSION_MODE_PROPERTY_KEY = "claude.code.permission.mode";
+    private static final int STATUS_RESET_DELAY_SECONDS = 5;
+
+    /**
+     * Tab answer status enum (shared with ClaudeChatWindow).
+     */
+    public enum TabAnswerStatus {
+        IDLE,
+        ANSWERING,
+        COMPLETED
+    }
+
+    /**
+     * Host interface providing access to window-level dependencies.
+     */
+    public interface DelegateHost {
+        Project getProject();
+        ClaudeSDKBridge getClaudeSDKBridge();
+        CodexSDKBridge getCodexSDKBridge();
+        ClaudeSession getSession();
+        CodemossSettingsService getSettingsService();
+        JPanel getMainPanel();
+        JBCefBrowser getBrowser();
+        boolean isDisposed();
+        void callJavaScript(String fn, String... args);
+        Content getParentContent();
+        String getOriginalTabName();
+        void setOriginalTabName(String name);
+        String getSessionId();
+        HandlerContext getHandlerContext();
+        void setHandlerContext(HandlerContext ctx);
+        void setMessageDispatcher(MessageDispatcher d);
+        void setPermissionHandler(PermissionHandler h);
+        void setHistoryHandler(HistoryHandler h);
+        SessionLifecycleManager getSessionLifecycleManager();
+        StreamMessageCoalescer getStreamCoalescer();
+        WebviewWatchdog getWebviewWatchdog();
+        PermissionHandler getPermissionHandler();
+        void interruptDueToPermissionDenial();
+        boolean isFrontendReady();
+        void setFrontendReady(boolean ready);
+        void setSlashCommandsFetched(boolean fetched);
+        void setFetchedSlashCommandsCount(int count);
+    }
+
+    private final DelegateHost host;
+
+    // Tab status state (owned by this delegate)
+    private TabAnswerStatus currentTabStatus = TabAnswerStatus.IDLE;
+    private ScheduledFuture<?> statusResetTask;
+
+    // QuickFix pending state (owned by this delegate)
+    private volatile String pendingQuickFixPrompt = null;
+    private volatile MessageCallback pendingQuickFixCallback = null;
+
+    public ChatWindowDelegate(DelegateHost host) {
+        this.host = host;
+    }
+
+    // ==================== Initialization Methods ====================
+
+    public void loadNodePathFromSettings() {
+        ClaudeSDKBridge claudeSDKBridge = host.getClaudeSDKBridge();
+        CodexSDKBridge codexSDKBridge = host.getCodexSDKBridge();
+        try {
+            PropertiesComponent props = PropertiesComponent.getInstance();
+            String savedNodePath = props.getValue(NODE_PATH_PROPERTY_KEY);
+
+            if (savedNodePath != null && !savedNodePath.trim().isEmpty()) {
+                String path = savedNodePath.trim();
+                claudeSDKBridge.setNodeExecutable(path);
+                codexSDKBridge.setNodeExecutable(path);
+                claudeSDKBridge.verifyAndCacheNodePath(path);
+                LOG.info("Using manually configured Node.js path: " + path);
+            } else {
+                LOG.info("No saved Node.js path found, attempting auto-detection...");
+                io.github.feelhappy.ccaitoolkit.model.NodeDetectionResult detected =
+                    claudeSDKBridge.detectNodeWithDetails();
+
+                if (detected != null && detected.isFound() && detected.getNodePath() != null) {
+                    String detectedPath = detected.getNodePath();
+                    String detectedVersion = detected.getNodeVersion();
+
+                    props.setValue(NODE_PATH_PROPERTY_KEY, detectedPath);
+                    claudeSDKBridge.setNodeExecutable(detectedPath);
+                    codexSDKBridge.setNodeExecutable(detectedPath);
+                    claudeSDKBridge.verifyAndCacheNodePath(detectedPath);
+
+                    LOG.info("Auto-detected Node.js: " + detectedPath + " (" + detectedVersion + ")");
+                } else {
+                    LOG.warn("Failed to auto-detect Node.js path. Error: " +
+                        (detected != null ? detected.getErrorMessage() : "Unknown error"));
+                }
+            }
+        } catch (Exception e) {
+            LOG.error("Failed to load Node.js path: " + e.getMessage(), e);
+        }
+    }
+
+    public void loadPermissionModeFromSettings() {
+        try {
+            PropertiesComponent props = PropertiesComponent.getInstance();
+            String savedMode = props.getValue(PERMISSION_MODE_PROPERTY_KEY);
+            if (savedMode != null && !savedMode.trim().isEmpty()) {
+                String mode = savedMode.trim();
+                ClaudeSession session = host.getSession();
+                if (session != null) {
+                    session.setPermissionMode(mode);
+                    LOG.info("Loaded permission mode from settings: " + mode);
+                    io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier.setMode(host.getProject(), mode);
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to load permission mode: " + e.getMessage());
+        }
+    }
+
+    public void savePermissionModeToSettings(String mode) {
+        try {
+            PropertiesComponent props = PropertiesComponent.getInstance();
+            props.setValue(PERMISSION_MODE_PROPERTY_KEY, mode);
+            LOG.info("Saved permission mode to settings: " + mode);
+        } catch (Exception e) {
+            LOG.warn("Failed to save permission mode: " + e.getMessage());
+        }
+    }
+
+    public void syncActiveProvider() {
+        try {
+            CodemossSettingsService settingsService = host.getSettingsService();
+            if (settingsService.isLocalProviderActive()) {
+                LOG.info("[ClaudeSDKToolWindow] Local provider active, skipping startup sync");
+                return;
+            }
+            settingsService.applyActiveProviderToClaudeSettings();
+        } catch (Exception e) {
+            LOG.warn("Failed to sync active provider on startup: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Set up permission service. Returns the sessionId for cleanup on dispose.
+     */
+    public String setupPermissionService() {
+        ClaudeSDKBridge claudeSDKBridge = host.getClaudeSDKBridge();
+        CodexSDKBridge codexSDKBridge = host.getCodexSDKBridge();
+        Project project = host.getProject();
+        String sessionId = claudeSDKBridge.getSessionId();
+
+        if ((sessionId == null || sessionId.isEmpty()) && codexSDKBridge != null) {
+            sessionId = codexSDKBridge.getSessionId();
+        }
+
+        if (sessionId == null || sessionId.isEmpty()) {
+            LOG.warn("Failed to get session ID from bridges, generating fallback UUID");
+            sessionId = java.util.UUID.randomUUID().toString();
+        }
+
+        // Critical: align CLAUDE_SESSION_ID across Claude/Codex subprocesses so
+        // PermissionService can hit the same batch of request files.
+        claudeSDKBridge.setSessionId(sessionId);
+        if (codexSDKBridge != null) {
+            codexSDKBridge.setSessionId(sessionId);
+        }
+        LOG.info("Unified bridge sessionId for PermissionService routing: " + sessionId);
+
+        PermissionService permissionService = PermissionService.getInstance(project, sessionId);
+        permissionService.start();
+        // Use lazy evaluation: host.getPermissionHandler() is called at lambda execution time,
+        // not at creation time, since permissionHandler may not be set yet during construction.
+        permissionService.registerDialogShower(project, (toolName, inputs) ->
+            host.getPermissionHandler().showFrontendPermissionDialog(toolName, inputs));
+        permissionService.registerAskUserQuestionDialogShower(project, (requestId, questionsData) ->
+            host.getPermissionHandler().showAskUserQuestionDialog(requestId, questionsData));
+        permissionService.registerPlanApprovalDialogShower(project, (requestId, planData) ->
+            host.getPermissionHandler().showPlanApprovalDialog(requestId, planData));
+        LOG.info("Started permission service with frontend dialog, AskUserQuestion dialog, and PlanApproval dialog for project: " + project.getName());
+        return sessionId;
+    }
+
+    public void initializeHandlers() {
+        Project project = host.getProject();
+        ClaudeSDKBridge claudeSDKBridge = host.getClaudeSDKBridge();
+        CodexSDKBridge codexSDKBridge = host.getCodexSDKBridge();
+        CodemossSettingsService settingsService = host.getSettingsService();
+
+        HandlerContext.JsCallback jsCallback = new HandlerContext.JsCallback() {
+            @Override
+            public void callJavaScript(String functionName, String... args) {
+                host.callJavaScript(functionName, args);
+            }
+            @Override
+            public String escapeJs(String str) {
+                return JsUtils.escapeJs(str);
+            }
+        };
+
+        HandlerContext handlerContext = new HandlerContext(project, claudeSDKBridge, codexSDKBridge, settingsService, jsCallback);
+        handlerContext.setSession(host.getSession());
+        host.setHandlerContext(handlerContext);
+
+        MessageDispatcher messageDispatcher = new MessageDispatcher();
+        host.setMessageDispatcher(messageDispatcher);
+
+        // Register all handlers
+        messageDispatcher.registerHandler(new ProviderHandler(handlerContext));
+        messageDispatcher.registerHandler(new McpServerHandler(handlerContext));
+        messageDispatcher.registerHandler(new CodexMcpServerHandler(handlerContext, settingsService.getCodexMcpServerManager()));
+        messageDispatcher.registerHandler(new SkillHandler(handlerContext, host.getMainPanel()));
+        messageDispatcher.registerHandler(new FileHandler(handlerContext));
+        messageDispatcher.registerHandler(new SettingsHandler(handlerContext));
+        messageDispatcher.registerHandler(new SessionHandler(handlerContext));
+        messageDispatcher.registerHandler(new SessionHandoffHandler(handlerContext));
+        messageDispatcher.registerHandler(new FileExportHandler(handlerContext));
+        messageDispatcher.registerHandler(new DiffHandler(handlerContext));
+        messageDispatcher.registerHandler(new PromptEnhancerHandler(handlerContext));
+        messageDispatcher.registerHandler(new AgentHandler(handlerContext));
+        messageDispatcher.registerHandler(new PromptHandler(handlerContext));
+        messageDispatcher.registerHandler(new TabHandler(handlerContext));
+        messageDispatcher.registerHandler(new RewindHandler(handlerContext));
+        messageDispatcher.registerHandler(new RewriteHandler(handlerContext));
+        messageDispatcher.registerHandler(new UndoFileHandler(handlerContext));
+        messageDispatcher.registerHandler(new DependencyHandler(handlerContext));
+        messageDispatcher.registerHandler(new BmadHandler(handlerContext));
+        messageDispatcher.registerHandler(new UiUxProHandler(handlerContext));
+        messageDispatcher.registerHandler(new ImpeccableHandler(handlerContext));
+        messageDispatcher.registerHandler(new MiniMaxHandler(handlerContext));
+        messageDispatcher.registerHandler(new GitNexusHandler(handlerContext));
+        messageDispatcher.registerHandler(new HarnessHandler(handlerContext));
+        messageDispatcher.registerHandler(new DebateHandler(handlerContext));
+        messageDispatcher.registerHandler(new ClipboardHandler(handlerContext));
+        messageDispatcher.registerHandler(new CursorHandler(handlerContext));
+        messageDispatcher.registerHandler(new NacosRegistryHandler(handlerContext, settingsService.getNacosRegistryManager()));
+
+        // Window event handler
+        messageDispatcher.registerHandler(new WindowEventHandler(handlerContext, new WindowEventHandler.Callback() {
+            @Override public void onHeartbeat(String content) { host.getWebviewWatchdog().handleHeartbeat(content); }
+            @Override public void onTabLoadingChanged(boolean loading) { updateTabLoadingState(loading); }
+            @Override public void onTabStatusChanged(String statusStr) {
+                TabAnswerStatus status;
+                switch (statusStr) {
+                    case "answering": status = TabAnswerStatus.ANSWERING; break;
+                    case "completed": status = TabAnswerStatus.COMPLETED; break;
+                    default: status = TabAnswerStatus.IDLE; break;
+                }
+                updateTabStatus(status);
+            }
+            @Override public void onCreateNewSession() {
+                host.getSessionLifecycleManager().createNewSession();
+            }
+            @Override public void onFrontendReady() { handleFrontendReady(); }
+            @Override public void onRefreshSlashCommands() {
+                host.getSessionLifecycleManager().fetchSlashCommandsOnStartup();
+            }
+        }));
+
+        // Permission handler
+        PermissionHandler permissionHandler = new PermissionHandler(handlerContext);
+        permissionHandler.setPermissionDeniedCallback(host::interruptDueToPermissionDenial);
+        host.setPermissionHandler(permissionHandler);
+        messageDispatcher.registerHandler(permissionHandler);
+
+        // History handler
+        HistoryHandler historyHandler = new HistoryHandler(handlerContext);
+        historyHandler.setSessionLoadCallback((sessionId, projectPath) ->
+            host.getSessionLifecycleManager().loadHistorySession(sessionId, projectPath));
+        host.setHistoryHandler(historyHandler);
+        messageDispatcher.registerHandler(historyHandler);
+
+        LOG.info("Registered " + messageDispatcher.getHandlerCount() + " message handlers");
+    }
+
+    public void initializeStatusBar() {
+        ApplicationManager.getApplication().invokeLater(() -> {
+            Project project = host.getProject();
+            if (project == null || host.isDisposed()) return;
+
+            ClaudeSession session = host.getSession();
+            String mode = session != null ? session.getPermissionMode() : "default";
+            io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier.setMode(project, mode);
+
+            String model = session != null ? session.getModel() : "claude-sonnet-4-6";
+            io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier.setModel(project, model);
+
+            try {
+                CodemossSettingsService settingsService = host.getSettingsService();
+                String selectedId = settingsService.getSelectedAgentId();
+                if (selectedId != null) {
+                    JsonObject agent = settingsService.getAgent(selectedId);
+                    if (agent != null) {
+                        String agentName = agent.has("name") ? agent.get("name").getAsString() : "Agent";
+                        io.github.feelhappy.ccaitoolkit.notifications.ClaudeNotifier.setAgent(project, agentName);
+                    }
+                }
+            } catch (Exception e) {
+                LOG.warn("Failed to set initial agent in status bar: " + e.getMessage());
+            }
+        });
+    }
+
+    // ==================== Tab Status Methods ====================
+
+    public void updateTabStatus(TabAnswerStatus status) {
+        Content parentContent = host.getParentContent();
+        String originalTabName = host.getOriginalTabName();
+        if (parentContent == null || originalTabName == null) {
+            LOG.warn("[TabStatus] Cannot update - parentContent or originalTabName is null");
+            return;
+        }
+
+        if (status == currentTabStatus) {
+            LOG.debug("[TabStatus] Skipping redundant update for tab: " + originalTabName);
+            return;
+        }
+
+        currentTabStatus = status;
+
+        if (statusResetTask != null && !statusResetTask.isDone()) {
+            statusResetTask.cancel(false);
+            statusResetTask = null;
+        }
+
+        ApplicationManager.getApplication().invokeLater(() -> {
+            // Detect external renames: if current name doesn't start with originalTabName,
+            // someone renamed the tab (e.g. RenameTabAction) — adopt the new name
+            String tabName = originalTabName;
+            String currentDisplayName = parentContent.getDisplayName();
+            if (currentDisplayName != null && !currentDisplayName.startsWith(tabName)) {
+                tabName = currentDisplayName.endsWith("...")
+                    ? currentDisplayName.substring(0, currentDisplayName.length() - 3)
+                    : currentDisplayName;
+                host.setOriginalTabName(tabName);
+                LOG.debug("[TabStatus] Detected external rename, updated originalTabName to: " + tabName);
+            }
+
+            String displayName;
+            switch (status) {
+                case ANSWERING:
+                    displayName = tabName + "...";
+                    LOG.debug("[TabStatus] Set answering state for tab: " + displayName);
+                    break;
+                case COMPLETED:
+                    String completedText = ClaudeCodeGuiBundle.message("tab.status.completed");
+                    displayName = tabName + " (" + completedText + ")";
+                    LOG.debug("[TabStatus] Set completed state for tab: " + displayName);
+
+                    statusResetTask = AppExecutorUtil.getAppScheduledExecutorService().schedule(() -> {
+                        ApplicationManager.getApplication().invokeLater(() -> {
+                            updateTabStatus(TabAnswerStatus.IDLE);
+                        });
+                    }, STATUS_RESET_DELAY_SECONDS, TimeUnit.SECONDS);
+                    break;
+                case IDLE:
+                default:
+                    displayName = tabName;
+                    LOG.debug("[TabStatus] Restored idle state for tab: " + displayName);
+                    break;
+            }
+            parentContent.setDisplayName(displayName);
+        });
+    }
+
+    @Deprecated
+    public void updateTabLoadingState(boolean loading) {
+        updateTabStatus(loading ? TabAnswerStatus.ANSWERING : TabAnswerStatus.IDLE);
+    }
+
+    // ==================== QuickFix Methods ====================
+
+    public void sendQuickFixMessage(String prompt, boolean isQuickFix, MessageCallback callback) {
+        ClaudeSession session = host.getSession();
+        if (session == null) {
+            LOG.warn("QuickFix: Session is null, cannot send message");
+            ApplicationManager.getApplication().invokeLater(() -> {
+                callback.onError("Session not initialized. Please wait for the tool window to fully load.");
+            });
+            return;
+        }
+
+        session.getContextCollector().setQuickFix(isQuickFix);
+
+        if (!host.isFrontendReady()) {
+            LOG.info("QuickFix: Frontend not ready, queuing message for later");
+            pendingQuickFixPrompt = prompt;
+            pendingQuickFixCallback = callback;
+            return;
+        }
+
+        executeQuickFixInternal(prompt, callback);
+    }
+
+    private void executePendingQuickFix(String prompt, MessageCallback callback) {
+        ClaudeSession session = host.getSession();
+        if (session == null || host.isDisposed()) {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                callback.onError("Session not available");
+            });
+            return;
+        }
+        executeQuickFixInternal(prompt, callback);
+    }
+
+    private void executeQuickFixInternal(String prompt, MessageCallback callback) {
+        String escapedPrompt = JsUtils.escapeJs(prompt);
+        host.callJavaScript("addUserMessage", escapedPrompt);
+        host.callJavaScript("showLoading", "true");
+
+        host.getSession().send(prompt, null, (String) null).thenRun(() -> {
+            List<ClaudeSession.Message> messages = host.getSession().getMessages();
+            if (!messages.isEmpty()) {
+                ClaudeSession.Message last = messages.get(messages.size() - 1);
+                if (last.type == ClaudeSession.Message.Type.ASSISTANT && last.content != null) {
+                    ApplicationManager.getApplication().invokeLater(() -> {
+                        callback.onComplete(SDKResult.success(last.content));
+                    });
+                }
+            }
+        }).exceptionally(ex -> {
+            ApplicationManager.getApplication().invokeLater(() -> {
+                callback.onError(ex.getMessage());
+            });
+            return null;
+        });
+    }
+
+    // ==================== Frontend Ready ====================
+
+    public void handleFrontendReady() {
+        LOG.info("Received frontend_ready signal, frontend is now ready to receive data");
+        host.setFrontendReady(true);
+
+        host.getSessionLifecycleManager().sendCurrentPermissionMode();
+
+        if (pendingQuickFixPrompt != null && pendingQuickFixCallback != null) {
+            LOG.info("Processing pending QuickFix message after frontend ready");
+            String prompt = pendingQuickFixPrompt;
+            MessageCallback callback = pendingQuickFixCallback;
+            pendingQuickFixPrompt = null;
+            pendingQuickFixCallback = null;
+            ApplicationManager.getApplication().executeOnPooledThread(() -> {
+                executePendingQuickFix(prompt, callback);
+            });
+        }
+
+        host.getStreamCoalescer().flush(null);
+    }
+
+    // ==================== Cleanup ====================
+
+    /**
+     * Cancel any pending tasks owned by this delegate.
+     */
+    public void dispose() {
+        if (statusResetTask != null && !statusResetTask.isDone()) {
+            statusResetTask.cancel(false);
+            statusResetTask = null;
+            LOG.debug("[TabStatus] Cancelled pending status reset task");
+        }
+    }
+}

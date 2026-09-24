@@ -49,7 +49,7 @@
         <h2>使用方法</h2>
         <ul>
             <li>从右侧边栏打开 CC AI Toolkit 工具窗口</li>
-            <li>选中代码后使用 <kbd>Ctrl+Alt+K</kbd>（Win/Linux）或 <kbd>Cmd+Alt+K</kbd>（Mac）发送给 AI</li>
+            <li>选中代码后使用 <kbd>Ctrl+Alt+Shift+K</kbd>（Win/Linux）或 <kbd>Cmd+Alt+Shift+K</kbd>（Mac）发送给 AI</li>
             <li>即时获得 AI 驱动的代码辅助和智能建议</li>
         </ul>
 
@@ -68,108 +68,108 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- CC GUI tool window (includes history feature) -->
-        <toolWindow id="CCG"
+        <toolWindow id="CCAI"
                     anchor="right"
-                    factoryClass="com.github.claudecodegui.ui.toolwindow.ClaudeSDKToolWindow"
+                    factoryClass="io.github.feelhappy.ccaitoolkit.ui.toolwindow.ClaudeSDKToolWindow"
                     icon="/icons/cc-gui-icon.svg"
                     canCloseContents="true"/>
 
         <!-- Pre-extract AI Bridge on project open to avoid EDT freeze -->
-        <backgroundPostStartupActivity implementation="com.github.claudecodegui.startup.BridgePreloader"/>
+        <backgroundPostStartupActivity implementation="io.github.feelhappy.ccaitoolkit.startup.BridgePreloader"/>
 
         <!-- Cleanup old ai-bridge cache when plugin version changes -->
-        <backgroundPostStartupActivity implementation="com.github.claudecodegui.startup.PluginUpdateListener"/>
+        <backgroundPostStartupActivity implementation="io.github.feelhappy.ccaitoolkit.startup.PluginUpdateListener"/>
 
         <!-- Monitor Run/Debug Service Output -->
-        <backgroundPostStartupActivity implementation="com.github.claudecodegui.service.RunConfigMonitorService"/>
+        <backgroundPostStartupActivity implementation="io.github.feelhappy.ccaitoolkit.service.RunConfigMonitorService"/>
 
         <!-- StatusBar widget for task notification -->
-        <statusBarWidgetFactory id="ClaudeStatusBarWidget"
-                                implementation="com.github.claudecodegui.notifications.ClaudeStatusBarWidget$Factory"/>
+        <statusBarWidgetFactory id="CcAiToolkitStatusBar"
+                                implementation="io.github.feelhappy.ccaitoolkit.notifications.ClaudeStatusBarWidget$Factory"/>
 
         <!-- Notification group for DevTools and other balloon notifications -->
-        <notificationGroup id="CC GUI Notifications" displayType="BALLOON"/>
+        <notificationGroup id="CC AI Toolkit Notifications" displayType="BALLOON"/>
     </extensions>
 
     <actions>
         <!-- Action to send selected code to terminal -->
-        <action id="ClaudeCodeGUI.SendSelectionToTerminalAction"
-                class="com.github.claudecodegui.action.editor.SendSelectionToTerminalAction"
+        <action id="CcAiToolkit.SendSelectionToTerminalAction"
+                class="io.github.feelhappy.ccaitoolkit.action.editor.SendSelectionToTerminalAction"
                 icon="/icons/send-to-terminal.svg">
             <!-- Add to editor context menu (displayed at the top) -->
             <add-to-group group-id="EditorPopupMenu" anchor="first"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt K"/>
-            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt K"/>
-            <keyboard-shortcut keymap="macOS" first-keystroke="meta alt K"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift K"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift K"/>
+            <keyboard-shortcut keymap="macOS" first-keystroke="meta alt shift K"/>
         </action>
 
         <!-- Quick Fix with Claude Action -->
-        <action id="ClaudeCodeGUI.QuickFixWithClaudeAction"
-                class="com.github.claudecodegui.action.editor.QuickFixWithClaudeAction"
+        <action id="CcAiToolkit.QuickFixWithClaudeAction"
+                class="io.github.feelhappy.ccaitoolkit.action.editor.QuickFixWithClaudeAction"
                 icon="/icons/quick-fix.svg">
             <add-to-group group-id="EditorPopupMenu"
                            anchor="after"
-                           relative-to-action="ClaudeCodeGUI.SendSelectionToTerminalAction"/>
-            <keyboard-shortcut keymap="$default" first-keystroke="ctrl shift Q"/>
-            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta shift Q"/>
-            <keyboard-shortcut keymap="macOS" first-keystroke="meta shift Q"/>
+                           relative-to-action="CcAiToolkit.SendSelectionToTerminalAction"/>
+            <keyboard-shortcut keymap="$default" first-keystroke="ctrl alt shift Q"/>
+            <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta alt shift Q"/>
+            <keyboard-shortcut keymap="macOS" first-keystroke="meta alt shift Q"/>
         </action>
 
         <!-- Create New Tab Action (can be invoked via Find Action or programmatically) -->
-        <action id="ClaudeCodeGUI.CreateNewTabAction"
-                class="com.github.claudecodegui.action.tab.CreateNewTabAction"
+        <action id="CcAiToolkit.CreateNewTabAction"
+                class="io.github.feelhappy.ccaitoolkit.action.tab.CreateNewTabAction"
                 icon="AllIcons.General.Add"/>
 
         <!-- Rename Tab Action -->
-        <action id="ClaudeCodeGUI.RenameTabAction"
-                class="com.github.claudecodegui.action.tab.RenameTabAction"
+        <action id="CcAiToolkit.RenameTabAction"
+                class="io.github.feelhappy.ccaitoolkit.action.tab.RenameTabAction"
                 icon="AllIcons.Actions.Edit"/>
 
         <!-- Detach Tab Action -->
-        <action id="ClaudeCodeGUI.DetachTabAction"
-                class="com.github.claudecodegui.action.tab.DetachTabAction"
+        <action id="CcAiToolkit.DetachTabAction"
+                class="io.github.feelhappy.ccaitoolkit.action.tab.DetachTabAction"
                 icon="AllIcons.Actions.MoveToWindow"/>
 
         <!-- Open DevTools Action for JCEF debugging -->
-        <action id="ClaudeCodeGUI.OpenDevToolsAction"
-                class="com.github.claudecodegui.action.dev.OpenDevToolsAction"
+        <action id="CcAiToolkit.OpenDevToolsAction"
+                class="io.github.feelhappy.ccaitoolkit.action.dev.OpenDevToolsAction"
                 icon="AllIcons.Xml.Browsers.Chromium"/>
 
         <!-- Action to send file path from the file tree to the input box -->
-        <action id="ClaudeCodeGUI.SendFilePathToInputAction"
-                class="com.github.claudecodegui.action.editor.SendFilePathToInputAction"
+        <action id="CcAiToolkit.SendFilePathToInputAction"
+                class="io.github.feelhappy.ccaitoolkit.action.editor.SendFilePathToInputAction"
                 icon="/icons/send-to-terminal.svg">
             <!-- Add to project file tree context menu -->
             <add-to-group group-id="ProjectViewPopupMenu" anchor="first"/>
         </action>
 
         <!-- Generate Commit Message with AI Action -->
-        <action id="ClaudeCodeGUI.GenerateCommitMessageAction"
-                class="com.github.claudecodegui.action.vcs.GenerateCommitMessageAction"
+        <action id="CcAiToolkit.GenerateCommitMessageAction"
+                class="io.github.feelhappy.ccaitoolkit.action.vcs.GenerateCommitMessageAction"
                 icon="/icons/ai-commit.svg">
             <!-- Add to VCS Commit toolbar -->
             <add-to-group group-id="Vcs.MessageActionGroup" anchor="last"/>
         </action>
 
         <!-- Chat tool window clipboard actions (scoped to CCG tool window) -->
-        <action id="ClaudeCodeGUI.ChatCopyAction"
-                class="com.github.claudecodegui.action.ChatCopyAction"
+        <action id="CcAiToolkit.ChatCopyAction"
+                class="io.github.feelhappy.ccaitoolkit.action.ChatCopyAction"
                 text="Copy (Chat Window)"
                 description="Copy selected text in Claude chat window">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl C"/>
             <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta C"/>
             <keyboard-shortcut keymap="macOS" first-keystroke="meta C"/>
         </action>
-        <action id="ClaudeCodeGUI.ChatCutAction"
-                class="com.github.claudecodegui.action.ChatCutAction"
+        <action id="CcAiToolkit.ChatCutAction"
+                class="io.github.feelhappy.ccaitoolkit.action.ChatCutAction"
                 text="Cut (Chat Window)"
                 description="Cut selected text in Claude chat window">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl X"/>
             <keyboard-shortcut keymap="Mac OS X" first-keystroke="meta X"/>
             <keyboard-shortcut keymap="macOS" first-keystroke="meta X"/>
         </action>
-        <action id="ClaudeCodeGUI.ChatPasteAction"
-                class="com.github.claudecodegui.action.ChatPasteAction"
+        <action id="CcAiToolkit.ChatPasteAction"
+                class="io.github.feelhappy.ccaitoolkit.action.ChatPasteAction"
                 text="Paste (Chat Window)"
                 description="Paste clipboard text in Claude chat window">
             <keyboard-shortcut keymap="$default" first-keystroke="ctrl V"/>
@@ -178,14 +178,14 @@
         </action>
 
         <!-- Chat tool window send action (no default shortcut; dynamically managed by SendShortcutSync) -->
-        <action id="ClaudeCodeGUI.ChatSendAction"
-                class="com.github.claudecodegui.action.ChatSendAction"
+        <action id="CcAiToolkit.ChatSendAction"
+                class="io.github.feelhappy.ccaitoolkit.action.ChatSendAction"
                 text="Send Message (Chat Window)"
                 description="Send message in Claude chat window"/>
 
         <!-- Chat tool window newline action (Shift+Enter always newline; Ctrl+Enter dynamically managed by SendShortcutSync) -->
-        <action id="ClaudeCodeGUI.ChatNewlineAction"
-                class="com.github.claudecodegui.action.ChatNewlineAction"
+        <action id="CcAiToolkit.ChatNewlineAction"
+                class="io.github.feelhappy.ccaitoolkit.action.ChatNewlineAction"
                 text="Insert Newline (Chat Window)"
                 description="Insert newline in Claude chat window input">
             <keyboard-shortcut keymap="$default" first-keystroke="shift ENTER"/>
